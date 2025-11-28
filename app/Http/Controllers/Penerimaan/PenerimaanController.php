@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * SIMPLIFIED VERSION - Menggunakan database structure existing
  * 1 Penerimaan = 1 Pengadaan (tidak support multiple pengadaan)
  *
  * Database structure:
@@ -51,9 +50,10 @@ class PenerimaanController extends Controller
      */
     public function create()
     {
-        // Get pengadaan yang bisa dipilih (status=completed)
+        // Get pengadaan yang bisa dipilih (status='A' = Progress)
+        // Progress = PO sudah difinalisasi dan bisa menerima barang (partial atau penuh)
         $hasStatus = Schema::hasColumn('pengadaan', 'status_pengadaan');
-        $statusWhere = $hasStatus ? "WHERE COALESCE(p.status_pengadaan, p.status) IN ('completed', 'A')" : "WHERE p.status IN ('A')";
+        $statusWhere = $hasStatus ? "WHERE (p.status_pengadaan = 'progress' OR p.status = 'A')" : "WHERE p.status = 'A'";
 
         $sql =
             "SELECT\n" .
@@ -62,7 +62,12 @@ class PenerimaanController extends Controller
             "    p.vendor_idvendor,\n" .
             "    v.nama_vendor,\n" .
             "    COUNT(dp.iddetail_pengadaan) AS total_item,\n" .
-            "    SUM(dp.jumlah) AS total_pengadaan\n" .
+            "    SUM(dp.jumlah) AS total_pengadaan,\n" .
+            "    COALESCE((SELECT SUM(dpen.jumlah_terima)\n" .
+            "              FROM penerimaan pen\n" .
+            "              JOIN detail_penerimaan dpen ON pen.idpenerimaan = dpen.idpenerimaan\n" .
+            "              WHERE pen.idpengadaan = p.idpengadaan\n" .
+            "                AND pen.status = 'A'), 0) AS total_diterima\n" .
             "FROM pengadaan p\n" .
             "INNER JOIN vendor v ON p.vendor_idvendor = v.idvendor\n" .
             "INNER JOIN detail_pengadaan dp ON p.idpengadaan = dp.idpengadaan\n" .
@@ -129,13 +134,29 @@ class PenerimaanController extends Controller
                 ->with('info', 'Penerimaan sudah di-finalisasi. Lihat detail read-only.');
         }
 
-        // Get pengadaan details (as reference for adding items)
+        // Get pengadaan details with received quantities (as reference for adding items)
         $pengadaanDetails = DB::select("
             SELECT
                 dp.*,
                 b.nama AS nama_barang,
                 b.jenis,
-                s.nama_satuan
+                s.nama_satuan,
+                COALESCE((
+                    SELECT SUM(dpen.jumlah_terima)
+                    FROM penerimaan pen
+                    JOIN detail_penerimaan dpen ON pen.idpenerimaan = dpen.idpenerimaan
+                    WHERE pen.idpengadaan = dp.idpengadaan
+                      AND dpen.idbarang = dp.idbarang
+                      AND pen.status = 'A'
+                ), 0) AS jumlah_sudah_diterima,
+                (dp.jumlah - COALESCE((
+                    SELECT SUM(dpen.jumlah_terima)
+                    FROM penerimaan pen
+                    JOIN detail_penerimaan dpen ON pen.idpenerimaan = dpen.idpenerimaan
+                    WHERE pen.idpengadaan = dp.idpengadaan
+                      AND dpen.idbarang = dp.idbarang
+                      AND pen.status = 'A'
+                ), 0)) AS sisa_belum_diterima
             FROM detail_pengadaan dp
             INNER JOIN barang b ON dp.idbarang = b.idbarang
             LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
@@ -177,7 +198,7 @@ class PenerimaanController extends Controller
             return back()->with('error', 'Penerimaan sudah di-finalisasi');
         }
 
-        // Cek duplicate
+        // Cek duplicate DALAM penerimaan ini saja (allow same item in different penerimaan for partial receiving)
         $exists = DB::selectOne("
             SELECT iddetail_penerimaan
             FROM detail_penerimaan
@@ -185,7 +206,7 @@ class PenerimaanController extends Controller
         ", [$id, $request->idbarang]);
 
         if ($exists) {
-            return back()->with('error', 'Barang sudah ada di keranjang. Silakan edit jumlahnya.');
+            return back()->with('error', 'Barang sudah ada di keranjang penerimaan ini. Silakan edit jumlahnya.');
         }
 
         // Gunakan FUNCTION fn_calc_subtotal untuk hitung sub_total
@@ -203,15 +224,32 @@ class PenerimaanController extends Controller
         $pengadaanQtyRow = DB::selectOne("SELECT jumlah FROM detail_pengadaan WHERE idpengadaan = ? AND idbarang = ?", [$p->idpengadaan, $request->idbarang]);
         $pengadaanJumlah = $pengadaanQtyRow ? intval($pengadaanQtyRow->jumlah) : 0;
 
-        // Sum existing received for this penerimaan and barang (should be zero because we prevented duplicates, but keep safe)
-        $existingReceivedRow = DB::selectOne("SELECT COALESCE(SUM(jumlah_terima),0) as total_received FROM detail_penerimaan WHERE idpenerimaan = ? AND idbarang = ?", [$id, $request->idbarang]);
-        $existingReceived = $existingReceivedRow ? intval($existingReceivedRow->total_received) : 0;
+        // Sum TOTAL received across ALL finalized penerimaan for this PO and barang (partial receiving support)
+        $totalReceivedRow = DB::selectOne("
+            SELECT COALESCE(SUM(dpen.jumlah_terima), 0) as total_received
+            FROM penerimaan pen
+            JOIN detail_penerimaan dpen ON pen.idpenerimaan = dpen.idpenerimaan
+            WHERE pen.idpengadaan = ?
+              AND dpen.idbarang = ?
+              AND pen.status = 'A'
+        ", [$p->idpengadaan, $request->idbarang]);
+        $totalReceived = $totalReceivedRow ? intval($totalReceivedRow->total_received) : 0;
 
-        if ($existingReceived + intval($request->jumlah_terima) > $pengadaanJumlah) {
-            return back()->with('error', 'Jumlah diterima tidak boleh melebihi jumlah pada pengadaan (tersedia: ' . $pengadaanJumlah . ')');
+        // Also sum current penerimaan (not yet finalized)
+        $currentReceivedRow = DB::selectOne("
+            SELECT COALESCE(SUM(jumlah_terima), 0) as current_received
+            FROM detail_penerimaan
+            WHERE idpenerimaan = ? AND idbarang = ?
+        ", [$id, $request->idbarang]);
+        $currentReceived = $currentReceivedRow ? intval($currentReceivedRow->current_received) : 0;
+
+        $sisaBelumDiterima = $pengadaanJumlah - $totalReceived - $currentReceived;
+
+        if (intval($request->jumlah_terima) > $sisaBelumDiterima) {
+            return back()->with('error', 'Jumlah diterima melebihi sisa yang belum diterima. PO: ' . $pengadaanJumlah . ', Sudah diterima: ' . $totalReceived . ', Sisa: ' . $sisaBelumDiterima);
         }
 
-        // Insert detail menggunakan RAW SQL (NO Query Builder!)
+        // Insert detail
         DB::statement("
             INSERT INTO detail_penerimaan
             (idpenerimaan, idbarang, jumlah_terima, harga_satuan_terima, sub_total_terima)
@@ -259,7 +297,7 @@ class PenerimaanController extends Controller
             return back()->with('error', 'Jumlah diterima tidak boleh melebihi jumlah pada pengadaan (tersedia: ' . $pengadaanJumlah . ', sudah diterima: ' . $otherReceived . ')');
         }
 
-        // Update menggunakan RAW SQL (NO Query Builder!)
+        // Update
         DB::statement("
             UPDATE detail_penerimaan
             SET jumlah_terima = ?,
@@ -283,7 +321,7 @@ class PenerimaanController extends Controller
             return back()->with('error', 'Penerimaan sudah di-finalisasi');
         }
 
-        // Delete menggunakan RAW SQL (NO Query Builder!)
+        // Delete
         DB::statement("
             DELETE FROM detail_penerimaan
             WHERE iddetail_penerimaan = ?
@@ -371,7 +409,7 @@ class PenerimaanController extends Controller
 
                 $new_stock = $last_stock + $detail->jumlah_terima;
 
-                // Insert to kartu_stok menggunakan RAW SQL (NO Query Builder!)
+                // Insert to kartu_stok
                 DB::statement("
                     INSERT INTO kartu_stok
                     (jenis_transaksi, masuk, keluar, stock, created_at, idtransaksi, idbarang)
@@ -379,12 +417,15 @@ class PenerimaanController extends Controller
                 ", [$detail->jumlah_terima, $new_stock, $id, $detail->idbarang]);
             }
 
-            // Update penerimaan status menggunakan RAW SQL (NO Query Builder!)
+            // Update penerimaan status to 'A' (finalized)
             DB::statement("
                 UPDATE penerimaan
                 SET status = 'A'
                 WHERE idpenerimaan = ?
             ", [$id]);
+
+            // AUTO-UPDATE PO STATUS: Check if all items in PO have been fully received
+            $this->updatePengadaanStatus($penerimaan->idpengadaan);
 
             DB::commit();
 
@@ -394,6 +435,88 @@ class PenerimaanController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal finalisasi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Auto-update PO status to 'completed' if all qty received
+     */
+    private function updatePengadaanStatus($idpengadaan)
+    {
+        // Get total qty ordered in PO
+        $totalPORow = DB::selectOne("
+            SELECT SUM(jumlah) as total_po
+            FROM detail_pengadaan
+            WHERE idpengadaan = ?
+        ", [$idpengadaan]);
+        $totalPO = $totalPORow ? intval($totalPORow->total_po) : 0;
+
+        // Get total qty received across ALL finalized penerimaan
+        $totalReceivedRow = DB::selectOne("
+            SELECT SUM(dpen.jumlah_terima) as total_received
+            FROM penerimaan pen
+            JOIN detail_penerimaan dpen ON pen.idpenerimaan = dpen.idpenerimaan
+            WHERE pen.idpengadaan = ?
+              AND pen.status = 'A'
+        ", [$idpengadaan]);
+        $totalReceived = $totalReceivedRow ? intval($totalReceivedRow->total_received) : 0;
+
+        // If all qty received, update PO status to 'completed' (C)
+        if ($totalReceived >= $totalPO && $totalPO > 0) {
+            $hasStatus = Schema::hasColumn('pengadaan', 'status_pengadaan');
+            if ($hasStatus) {
+                DB::statement("
+                    UPDATE pengadaan
+                    SET status = 'C', status_pengadaan = 'completed'
+                    WHERE idpengadaan = ?
+                ", [$idpengadaan]);
+            } else {
+                // Legacy: set status to 'C' (completed)
+                DB::statement("
+                    UPDATE pengadaan
+                    SET status = 'C'
+                    WHERE idpengadaan = ?
+                ", [$idpengadaan]);
+            }
+        }
+    }
+
+    /**
+     * Delete penerimaan (hanya jika status = 'P' / Draft)
+     */
+    public function destroy($id)
+    {
+        // Cek status penerimaan
+        $penerimaan = DB::selectOne("SELECT status FROM penerimaan WHERE idpenerimaan = ?", [$id]);
+
+        if (!$penerimaan) {
+            return redirect()->route('penerimaan.index')
+                ->with('error', 'Penerimaan tidak ditemukan');
+        }
+
+        // Hanya izinkan hapus jika status = 'P' (Draft)
+        if ($penerimaan->status !== 'P') {
+            return redirect()->route('penerimaan.show', $id)
+                ->with('error', 'Tidak dapat menghapus penerimaan yang sudah difinalisasi');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Hapus detail penerimaan (cascade)
+            DB::statement("DELETE FROM detail_penerimaan WHERE idpenerimaan = ?", [$id]);
+
+            // Hapus penerimaan
+            DB::statement("DELETE FROM penerimaan WHERE idpenerimaan = ?", [$id]);
+
+            DB::commit();
+
+            return redirect()->route('penerimaan.index')
+                ->with('success', 'Penerimaan berhasil dihapus');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('penerimaan.show', $id)
+                ->with('error', 'Gagal menghapus penerimaan: ' . $e->getMessage());
         }
     }
 }

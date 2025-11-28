@@ -5,7 +5,7 @@
         <x-header title="Keranjang Pengadaan" subtitle="Tambah dan edit barang pengadaan" />
     </x-slot:header>
 
-    <div class="px-4 sm:px-6 lg:px-8" x-data="{ showAddForm: false, editMode: {}, harga: {} }">
+    <div class="px-4 sm:px-6 lg:px-8" x-data="{ showAddForm: false, editMode: {}, harga: {}, selectedBarang: '' }">
         @if(session('success'))
             <div class="mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
                 {{ session('success') }}
@@ -31,7 +31,22 @@
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-600">Status</label>
-                    <p><span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Draft</span></p>
+                    <p>
+                        @php
+                            $statusClass = 'bg-yellow-100 text-yellow-800'; // default: draft
+                            $statusText = 'Draft';
+                            if(isset($pengadaan->status_pengadaan)) {
+                                if($pengadaan->status_pengadaan === 'progress') {
+                                    $statusClass = 'bg-blue-100 text-blue-800';
+                                    $statusText = 'Progress';
+                                } elseif($pengadaan->status_pengadaan === 'completed') {
+                                    $statusClass = 'bg-green-100 text-green-800';
+                                    $statusText = 'Completed';
+                                }
+                            }
+                        @endphp
+                        <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full {{ $statusClass }}">{{ $statusText }}</span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -47,11 +62,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Barang</label>
-                        <select name="idbarang" required x-model="selectedBarang" @change="harga[$event.target.value] = $event.target.selectedOptions[0].dataset.harga"
+                        <select name="idbarang" required x-model="selectedBarang"
+                            x-init="if($el.value) harga[$el.value] = Number($el.selectedOptions[0].dataset.harga || 0)"
+                            @change="harga[$event.target.value] = Number($event.target.selectedOptions[0].dataset.harga || 0)"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500">
                             <option value="">-- Pilih Barang --</option>
                             @foreach($barangs as $barang)
-                                <option value="{{ $barang->idbarang }}" data-harga="{{ $barang->harga_jual }}">
+                                <option value="{{ $barang->idbarang }}" data-harga="{{ $barang->harga_jual ?? $barang->harga ?? 0 }}">
                                     {{ $barang->nama }} ({{ $barang->nama_satuan ?? '-' }})
                                 </option>
                             @endforeach
@@ -120,7 +137,6 @@
                                                class="mx-auto w-32 px-3 py-1 border border-gray-200 rounded-md text-sm text-center">
                                     </span>
                                 </td>
-                                </td>
                                 <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">
                                     Rp {{ number_format($detail->sub_total, 0, ',', '.') }}
                                 </td>
@@ -180,7 +196,7 @@
                             <td></td>
                         </tr>
                         <tr>
-                            <td colspan="4" class="px-4 py-3 text-right text-sm font-medium text-gray-700">PPN (11%):</td>
+                            <td colspan="4" class="px-4 py-3 text-right text-sm font-medium text-gray-700">PPN (10%):</td>
                             <td class="px-4 py-3 text-right text-sm font-semibold text-gray-900">
                                 Rp {{ number_format($pengadaan->ppn, 0, ',', '.') }}
                             </td>
@@ -197,7 +213,7 @@
                 </table>
             </div>
 
-            <div class="mt-6 flex justify-between">
+            <div class="mt-6 flex justify-between items-center">
                 <a href="{{ route('pengadaan.index') }}"
                    class="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition duration-150">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,18 +221,36 @@
                     </svg>
                     Kembali
                 </a>
-                @if(count($details) > 0)
-                    <form action="{{ route('pengadaan.finalize', $pengadaan->idpengadaan) }}" method="POST" onsubmit="return confirm('Finalisasi pengadaan? Setelah finalisasi tidak bisa diedit lagi.')">
+
+                <div class="flex gap-3">
+                    <!-- Tombol Hapus (hanya muncul jika status Draft) -->
+                    <form action="{{ route('pengadaan.destroy', $pengadaan->idpengadaan) }}" method="POST"
+                          onsubmit="return confirm('⚠️ HAPUS PENGADAAN?\n\nSemua data pengadaan dan detail barang akan dihapus permanen.\n\nLanjutkan?')"
+                          class="inline">
                         @csrf
+                        @method('DELETE')
                         <button type="submit"
-                                class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition duration-150">
+                                class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-md transition duration-150">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                             </svg>
-                            Finalisasi Pengadaan
+                            Batalkan
                         </button>
                     </form>
-                @endif
+
+                    @if(count($details) > 0)
+                        <form action="{{ route('pengadaan.finalize', $pengadaan->idpengadaan) }}" method="POST" onsubmit="return confirm('Finalisasi pengadaan? Setelah finalisasi tidak bisa diedit lagi.')">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition duration-150">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Simpan Permanen
+                            </button>
+                        </form>
+                    @endif
+                </div>
             </div>
         </div>
     </div>

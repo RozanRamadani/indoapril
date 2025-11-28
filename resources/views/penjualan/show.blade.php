@@ -1,13 +1,13 @@
 <x-layout>
     <x-slot:title>Detail Penjualan - IndoApril</x-slot:title>
-    
+
     <x-slot:header>
         <x-header title="Detail Penjualan #{{ $penjualan->idpenjualan }}" subtitle="Informasi lengkap transaksi penjualan" />
     </x-slot:header>
 
     <div class="px-4 sm:px-6 lg:px-8">
         <div class="mb-6 flex justify-end">
-            <a href="{{ route('penjualan.index') }}" 
+            <a href="{{ route('penjualan.index') }}"
                class="px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition duration-150">
                 Kembali
             </a>
@@ -55,9 +55,9 @@
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $detail->nama_satuan }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900 text-right">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
                         <td class="px-6 py-4 text-sm text-gray-900 text-right">Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900 text-right">{{ $detail->margin_persen }}%</td>
+                        <td class="px-6 py-4 text-sm text-gray-900 text-right">{{ $penjualan->margin_persen ?? 0 }}%</td>
                         <td class="px-6 py-4 text-sm text-gray-900 text-right">Rp {{ number_format($detail->nilai_margin, 0, ',', '.') }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900 text-right">Rp {{ number_format($detail->sub_total, 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-900 text-right">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -69,7 +69,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td colspan="7" class="px-6 py-3 text-right text-sm font-medium text-gray-700">PPN (11%):</td>
+                        <td colspan="7" class="px-6 py-3 text-right text-sm font-medium text-gray-700">PPN (10%):</td>
                         <td class="px-6 py-3 text-sm font-semibold text-gray-900 text-right">
                             Rp {{ number_format($penjualan->ppn, 0, ',', '.') }}
                         </td>

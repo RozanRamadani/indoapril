@@ -17,9 +17,12 @@
                                 <label for="idbarang" class="block text-sm font-medium text-gray-700 mb-1">
                                     Pilih Barang
                                 </label>
-                                <select name="idbarang" id="idbarang" required
+                                <select name="idbarang" id="idbarang"
                                         class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">-- Pilih Barang --</option>
+                                    <option value="all" {{ request('idbarang') == 'all' ? 'selected' : '' }}>
+                                        🔍 Semua Barang
+                                    </option>
                                     @foreach($barangList as $b)
                                         <option value="{{ $b->idbarang }}" {{ request('idbarang') == $b->idbarang ? 'selected' : '' }}>
                                             {{ $b->nama }}
@@ -72,63 +75,101 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
+                                        @if(request('idbarang') === 'all')
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Nama Barang
+                                        </th>
+                                        @endif
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Tanggal
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Jenis Transaksi
+                                            Keterangan
                                         </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            ID Transaksi
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            No. Transaksi
                                         </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Tipe
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
                                         </th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Jumlah
+                                            Barang Masuk
+                                        </th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Barang Keluar
                                         </th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Nilai (Rp)
+                                        </th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Sisa Stok
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($kartuStok as $item)
                                         <tr class="hover:bg-gray-50">
+                                            @if(request('idbarang') === 'all')
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                {{ $item->nama_barang ?? '' }}
+                                            </td>
+                                            @endif
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {{ date('d/m/Y H:i', strtotime($item->tanggal)) }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {{ $item->jenis_transaksi }}
+                                            <td class="px-6 py-4 text-sm text-gray-900">
+                                                {{ $item->keterangan }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                #{{ $item->id_transaksi }}
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                    {{ $item->tipe == 'Masuk' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                                    {{ $item->tipe }}
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                                <span class="px-2 py-1 rounded-md font-semibold
+                                                    {{ $item->tipe_mutasi == 'Masuk' ? 'bg-green-100 text-green-800' :
+                                                       ($item->tipe_mutasi == 'Retur' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
+                                                    {{ $item->nomor_transaksi }}
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                                {{ number_format($item->jumlah, 0, ',', '.') }}
+                                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                    {{ $item->tipe_mutasi == 'Masuk' ? 'bg-green-100 text-green-800' :
+                                                       ($item->tipe_mutasi == 'Retur' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
+                                                    {{ $item->tipe_mutasi }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right {{ $item->qty_masuk > 0 ? 'text-green-600 font-semibold' : 'text-gray-400' }}">
+                                                {{ $item->qty_masuk > 0 ? number_format($item->qty_masuk, 0, ',', '.') : '-' }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right {{ $item->qty_keluar > 0 ? 'text-red-600 font-semibold' : 'text-gray-400' }}">
+                                                {{ $item->qty_keluar > 0 ? number_format($item->qty_keluar, 0, ',', '.') : '-' }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                                {{ number_format($item->nilai, 0, ',', '.') }}
+                                                {{ number_format($item->nilai_transaksi, 0, ',', '.') }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-indigo-600">
+                                                {{ number_format($item->sisa_stok, 0, ',', '.') }}
                                             </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                                 <tfoot class="bg-gray-50">
                                     <tr>
-                                        <td colspan="4" class="px-6 py-4 text-right font-semibold text-gray-700">
+                                        <td colspan="{{ request('idbarang') === 'all' ? '5' : '4' }}" class="px-6 py-4 text-right font-semibold text-gray-700">
                                             Total:
                                         </td>
-                                        <td class="px-6 py-4 text-right font-semibold text-gray-900">
-                                            {{ number_format($kartuStok->sum('jumlah'), 0, ',', '.') }}
+                                        @php
+                                            $totalMasuk = $kartuStok->sum('qty_masuk');
+                                            $totalKeluar = $kartuStok->sum('qty_keluar');
+                                            $totalNilai = $kartuStok->sum('nilai_transaksi');
+                                        @endphp
+                                        <td class="px-6 py-4 text-right font-semibold text-green-600">
+                                            {{ number_format($totalMasuk, 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right font-semibold text-red-600">
+                                            {{ number_format($totalKeluar, 0, ',', '.') }}
                                         </td>
                                         <td class="px-6 py-4 text-right font-semibold text-gray-900">
-                                            {{ number_format($kartuStok->sum('nilai'), 0, ',', '.') }}
+                                            {{ number_format($totalNilai, 0, ',', '.') }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm text-gray-500">
+                                            -
                                         </td>
                                     </tr>
                                 </tfoot>

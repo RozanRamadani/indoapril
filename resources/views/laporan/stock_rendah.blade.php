@@ -54,7 +54,7 @@
                                 <div class="text-2xl font-bold text-yellow-900">{{ count($stockRendah) }}</div>
                             </div>
                             <div class="bg-red-50 p-4 rounded-lg">
-                                <div class="text-sm font-medium text-red-600">Total Stock Tersisa</div>
+                                <div class="text-sm font-medium text-red-600">Total Stock Habis</div>
                                 <div class="text-2xl font-bold text-red-900">{{ number_format(collect($stockRendah)->sum('current_stock'), 0, ',', '.') }}</div>
                             </div>
                             <div class="bg-blue-50 p-4 rounded-lg">

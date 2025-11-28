@@ -1,10 +1,10 @@
 <x-layout>
     <x-slot:title>Daftar Role - IndoApril</x-slot:title>
-    
+
     <x-slot:header>
         <x-header title="Manajemen Role" subtitle="Kelola role/hak akses pengguna sistem" />
     </x-slot:header>
-    
+
     <div class="px-4 sm:px-6 lg:px-8">
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -23,7 +23,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
@@ -39,7 +39,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
@@ -56,7 +56,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Actions Bar -->
         <div class="bg-white rounded-lg shadow mb-6">
             <div class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
@@ -107,15 +107,6 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
                             <a href="{{ route('role.edit', $role->idrole) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
-                            @if($role->total_users == 0)
-                            <form action="{{ route('role.destroy', $role->idrole) }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin ingin menghapus role ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-900">Hapus</button>
-                            </form>
-                            @else
-                            <span class="text-gray-400">Tidak dapat dihapus</span>
-                            @endif
                         </td>
                     </tr>
                     @empty

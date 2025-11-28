@@ -63,9 +63,10 @@
             <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 class="font-semibold text-blue-900 mb-2">💡 Informasi</h3>
                 <ul class="text-sm text-blue-800 space-y-1">
-                    <li>• Hanya pengadaan dengan status <strong>Completed</strong> yang bisa diterima</li>
+                    <li>• Hanya pengadaan dengan status <strong>Progress</strong> yang bisa diterima</li>
                     <li>• Setelah memilih pengadaan, Anda akan diarahkan ke halaman input jumlah penerimaan</li>
                     <li>• Anda bisa memilih barang mana saja yang akan diterima dari pengadaan tersebut</li>
+                    <li>• Status pengadaan akan berubah menjadi <strong>Completed</strong> setelah semua barang diterima</li>
                 </ul>
             </div>
         </div>

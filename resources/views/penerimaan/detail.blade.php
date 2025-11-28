@@ -30,6 +30,8 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Barang</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase">Satuan</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Jumlah Pengadaan</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Sudah Diterima</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Sisa Belum Diterima</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Harga Satuan</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase">Sub Total</th>
                         </tr>
@@ -40,6 +42,8 @@
                                 <td class="px-4 py-3 text-sm text-gray-900">{{ $item->nama_barang }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-600">{{ $item->nama_satuan ?? '-' }}</td>
                                 <td class="px-4 py-3 text-sm text-right text-gray-900">{{ number_format($item->jumlah) }}</td>
+                                <td class="px-4 py-3 text-sm text-right text-gray-600">{{ number_format($item->jumlah_sudah_diterima ?? 0) }}</td>
+                                <td class="px-4 py-3 text-sm text-right font-semibold text-blue-600">{{ number_format($item->sisa_belum_diterima ?? $item->jumlah) }}</td>
                                 <td class="px-4 py-3 text-sm text-right text-gray-900">Rp {{ number_format($item->harga_satuan) }}</td>
                                 <td class="px-4 py-3 text-sm text-right font-medium text-gray-900">Rp {{ number_format($item->sub_total) }}</td>
                             </tr>
@@ -69,17 +73,24 @@
                                 onchange="updateHargaSatuan(this)">
                             <option value="">-- Pilih Barang --</option>
                             @foreach($pengadaanDetails as $item)
-                                <option value="{{ $item->idbarang }}" data-harga="{{ $item->harga_satuan }}">
-                                    {{ $item->nama_barang }}
+                                @php
+                                    $sisa = $item->sisa_belum_diterima ?? $item->jumlah;
+                                @endphp
+                                <option value="{{ $item->idbarang }}"
+                                        data-harga="{{ $item->harga_satuan }}"
+                                        data-sisa="{{ $sisa }}"
+                                        @if($sisa <= 0) disabled class="text-gray-400" @endif>
+                                    {{ $item->nama_barang }} (Sisa: {{ number_format($sisa) }})
                                 </option>
                             @endforeach
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Diterima</label>
-                        <input type="number" name="jumlah_terima" min="1" required
+                        <input type="number" name="jumlah_terima" min="1" required id="jumlah_terima_input"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 text-sm"
                                placeholder="0">
+                        <p class="text-xs text-gray-500 mt-1">Max: <span id="max_sisa">-</span></p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Harga Satuan</label>
@@ -99,7 +110,13 @@
             <script>
                 function updateHargaSatuan(select) {
                     const harga = select.options[select.selectedIndex].dataset.harga;
+                    const sisa = select.options[select.selectedIndex].dataset.sisa;
                     document.getElementById('harga_satuan_input').value = harga || '';
+                    document.getElementById('max_sisa').textContent = sisa ? parseInt(sisa).toLocaleString('id-ID') : '-';
+                    const jumlahInput = document.getElementById('jumlah_terima_input');
+                    if (sisa) {
+                        jumlahInput.max = sisa;
+                    }
                 }
             </script>
 
@@ -200,16 +217,30 @@
                 Kembali
             </a>
 
-            @if(count($keranjang) > 0)
-                <form action="{{ route('penerimaan.finalize', $penerimaan->idpenerimaan) }}" method="POST"
-                      onsubmit="return confirm('Finalisasi penerimaan ini? Setelah finalisasi, data tidak dapat diubah dan kartu_stok akan diupdate.')">
+            <div class="flex gap-3">
+                <!-- Tombol Hapus (hanya muncul jika status Draft) -->
+                <form action="{{ route('penerimaan.destroy', $penerimaan->idpenerimaan) }}" method="POST"
+                      onsubmit="return confirm('⚠️ HAPUS PENERIMAAN?\n\nSemua data penerimaan dan detail barang akan dihapus permanen.\n\nLanjutkan?')"
+                      class="inline">
                     @csrf
+                    @method('DELETE')
                     <button type="submit"
-                            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">
-                        Finalisasi Penerimaan
+                            class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold">
+                        Batalkan
                     </button>
                 </form>
-            @endif
+
+                @if(count($keranjang) > 0)
+                    <form action="{{ route('penerimaan.finalize', $penerimaan->idpenerimaan) }}" method="POST"
+                          onsubmit="return confirm('Finalisasi penerimaan ini? Setelah finalisasi, data tidak dapat diubah dan kartu_stok akan diupdate.')">
+                        @csrf
+                        <button type="submit"
+                                class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">
+                            Simpan Permanen
+                        </button>
+                    </form>
+                @endif
+            </div>
         </div>
     </div>
 </x-layout>

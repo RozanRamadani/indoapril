@@ -80,7 +80,7 @@
                                                 {{ $item->nama_barang }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {{ $item->satuan }}
+                                                {{ $item->nama_satuan }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
                                                 {{ number_format($item->current_stock, 0, ',', '.') }}

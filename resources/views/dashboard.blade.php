@@ -167,7 +167,19 @@
                                 </div>
                                 <div class="flex-1">
                                     <div class="flex justify-between items-center mb-2">
-                                        <span class="font-semibold text-gray-800">{{ $stat->jenis }}</span>
+                                        <span class="font-semibold text-gray-800 text-base">
+                                            @if($stat->jenis == 'M')
+                                                Makanan
+                                            @elseif($stat->jenis == 'A')
+                                                Alat Tulis
+                                            @elseif($stat->jenis == 'N')
+                                                Non-Makanan
+                                            @elseif($stat->jenis == 'K')
+                                                Kebersihan
+                                            @else
+                                                {{ $stat->jenis }}
+                                            @endif
+                                        </span>
                                         <span class="font-bold text-indigo-600">{{ number_format($stat->total) }} items</span>
                                     </div>
                                     <div class="w-full bg-gray-200 rounded-full h-2.5">

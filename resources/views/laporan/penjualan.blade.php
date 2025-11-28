@@ -189,13 +189,21 @@
                                                 </td>
                                             @endif
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                                {{ number_format($type == 'periode' ? $item->subtotal_penjualan : $item->total_subtotal, 0, ',', '.') }}
+                                                {{ number_format(
+                                                    $type == 'periode'
+                                                        ? ($item->subtotal_penjualan ?? $item->subtotal ?? $item->total_subtotal ?? 0)
+                                                        : ($item->total_subtotal ?? $item->subtotal ?? 0)
+                                                    , 0, ',', '.') }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                                {{ number_format($type == 'periode' ? $item->ppn : $item->total_ppn, 0, ',', '.') }}
+                                                {{ number_format(
+                                                    $type == 'periode'
+                                                        ? ($item->ppn ?? $item->total_ppn ?? 0)
+                                                        : ($item->total_ppn ?? $item->ppn ?? 0)
+                                                    , 0, ',', '.') }}
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900">
-                                                {{ number_format($item->total_penjualan, 0, ',', '.') }}
+                                                {{ number_format($item->total_penjualan ?? ($item->total ?? 0), 0, ',', '.') }}
                                             </td>
                                         </tr>
                                     @endforeach

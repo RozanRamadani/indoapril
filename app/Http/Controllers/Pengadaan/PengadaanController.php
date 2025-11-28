@@ -10,24 +10,26 @@ use Illuminate\Support\Facades\Schema;
 
 class PengadaanController extends Controller
 {
-    /**
-     * Display a listing of pengadaan
-     */
+
+    // Menampilkan daftar pengadaan
     public function index()
     {
-        // Build a normalized status selection as 'draft' or 'completed' regardless of underlying column naming
+        // Build a normalized status selection as 'draft', 'progress', or 'completed'
         $hasStatus = Schema::hasColumn('pengadaan', 'status_pengadaan');
         if ($hasStatus) {
-            // If status_pengadaan exists, prefer it; otherwise map legacy 'status' values (A/P) to completed/draft
-            $statusSelect = "(CASE WHEN p.status_pengadaan IS NOT NULL AND p.status_pengadaan <> '' THEN p.status_pengadaan WHEN p.status = 'A' THEN 'completed' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
+            // Jika kolom status_pengadaan ada, gunakan itu untuk mapping
+            // P=draft, A=progress (approved), C=completed
+            $statusSelect = "(CASE WHEN p.status_pengadaan IS NOT NULL AND p.status_pengadaan <> '' THEN p.status_pengadaan WHEN p.status = 'C' THEN 'completed' WHEN p.status = 'A' THEN 'progress' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
         } else {
-            // Map legacy status values to normalized textual status
-            $statusSelect = "(CASE WHEN p.status = 'A' THEN 'completed' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
+            // Jika kolom status_pengadaan tidak ada, gunakan kolom status legacy
+            // P=draft, A=progress (approved), C=completed
+            $statusSelect = "(CASE WHEN p.status = 'C' THEN 'completed' WHEN p.status = 'A' THEN 'progress' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
         }
-        // Avoid referencing jumlah_diterima if column doesn't exist in detail_pengadaan
+        // Menhindari error jika kolom jumlah_diterima tidak ada
         $hasJumlahDiterima = Schema::hasColumn('detail_pengadaan', 'jumlah_diterima');
         $totalDiterimaSelect = $hasJumlahDiterima ? "SUM(COALESCE(dp.jumlah_diterima, 0)) AS total_diterima" : "0 AS total_diterima";
 
+        // Query untuk mendapatkan daftar pengadaan dengan total item dan total jumlah diterima
         $sql =
             "SELECT\n" .
             "    p.idpengadaan,\n" .
@@ -88,31 +90,32 @@ class PengadaanController extends Controller
             'idvendor' => 'required|exists:vendor,idvendor',
         ]);
 
-        // If authentication isn't set up yet, fall back to system user id 1 (super admin)
+        // Jka user tidak login, gunakan user id 1
         // so the feature can be used during development without auth.
         $iduser = Auth::id() ?? 1;
 
-        // Insert pengadaan dengan status draft menggunakan RAW SQL (NO Query Builder!)
+        // Insert pengadaan dengan status draft
         $hasStatusPengadaan = Schema::hasColumn('pengadaan', 'status_pengadaan');
 
         if ($hasStatusPengadaan) {
-            $result = DB::selectOne("
-                INSERT INTO pengadaan
+            // Run single INSERT statement; do not combine with SELECT in same call.
+            DB::insert(
+                "INSERT INTO pengadaan
                 (created_at, subtotal_nilai, ppn, total_nilai, vendor_idvendor, user_iduser, status, status_pengadaan)
-                VALUES (NOW(), 0, 0, 0, ?, ?, 'P', 'draft');
-                SELECT LAST_INSERT_ID() as id;
-            ", [$request->idvendor, $iduser]);
+                VALUES (NOW(), 0, 0, 0, ?, ?, 'P', 'draft')",
+                [$request->idvendor, $iduser]
+            );
         } else {
-            $result = DB::selectOne("
-                INSERT INTO pengadaan
+            DB::insert(
+                "INSERT INTO pengadaan
                 (created_at, subtotal_nilai, ppn, total_nilai, vendor_idvendor, user_iduser, status)
-                VALUES (NOW(), 0, 0, 0, ?, ?, 'P');
-                SELECT LAST_INSERT_ID() as id;
-            ", [$request->idvendor, $iduser]);
+                VALUES (NOW(), 0, 0, 0, ?, ?, 'P')",
+                [$request->idvendor, $iduser]
+            );
         }
 
-        // Get last insert ID
-        $idpengadaan = DB::selectOne("SELECT LAST_INSERT_ID() as id")->id;
+        // Retrieve the last insert id via PDO (safe single-statement method)
+        $idpengadaan = (int) DB::getPdo()->lastInsertId();
 
         return redirect()->route('pengadaan.detail', $idpengadaan)
             ->with('success', 'Pengadaan berhasil dibuat. Silakan tambah barang.');
@@ -123,12 +126,12 @@ class PengadaanController extends Controller
      */
     public function detail($id)
     {
-        // Get pengadaan info with normalized status
+        // Get pengadaan info with normalized status (draft, progress, completed)
         $hasStatus = Schema::hasColumn('pengadaan', 'status_pengadaan');
         if ($hasStatus) {
-            $statusSelect = "(CASE WHEN p.status_pengadaan IS NOT NULL AND p.status_pengadaan <> '' THEN p.status_pengadaan WHEN p.status = 'A' THEN 'completed' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
+            $statusSelect = "(CASE WHEN p.status_pengadaan IS NOT NULL AND p.status_pengadaan <> '' THEN p.status_pengadaan WHEN p.status = 'A' THEN 'completed' WHEN p.status = 'progress' THEN 'progress' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
         } else {
-            $statusSelect = "(CASE WHEN p.status = 'A' THEN 'completed' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
+            $statusSelect = "(CASE WHEN p.status = 'A' THEN 'completed' WHEN p.status = 'progress' THEN 'progress' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
         }
 
         $sql =
@@ -143,10 +146,10 @@ class PengadaanController extends Controller
             "WHERE p.idpengadaan = ?";
 
         $pengadaan = DB::selectOne($sql, [$id]);
-        // Cek apakah sudah completed
-        if ($this->isPengadaanFinalized($pengadaan)) {
+        // Cek apakah sudah completed atau progress (tidak bisa edit lagi)
+        if ($this->isPengadaanFinalized($pengadaan) || $this->isPengadaanProgress($pengadaan)) {
             return redirect()->route('pengadaan.show', $id)
-                ->with('info', 'Pengadaan sudah di-finalisasi. Lihat detail read-only.');
+                ->with('info', 'Pengadaan sudah di-finalisasi atau dalam progress. Lihat detail read-only.');
         }
 
         // Get detail pengadaan (keranjang)
@@ -164,7 +167,7 @@ class PengadaanController extends Controller
                 ORDER BY " . $orderCol . " DESC
             ", [$id]);
 
-        // Get barang dropdown (barang aktif) with safe harga field selection
+        // Get barang dropdown (barang aktif)
         $hasHargaJual = Schema::hasColumn('barang', 'harga_jual');
         $hasHarga = Schema::hasColumn('barang', 'harga');
         if ($hasHargaJual) {
@@ -352,14 +355,15 @@ class PengadaanController extends Controller
             WHERE iddetail_pengadaan = ? AND idpengadaan = ?
         ", [$detailId, $id]);
 
-        // TRIGGER trg_after_delete_detail_pengadaan akan otomatis update totals!
-        // Tidak perlu panggil updatePengadaanTotals() lagi
+        // TRIGGER trg_after_delete_detail_pengadaan akan otomatis update totals
 
         return back()->with('success', 'Item berhasil dihapus');
     }
 
     /**
-     * Finalize pengadaan (set status = completed)
+     * Finalize pengadaan (set status = progress)
+     * NEW FLOW: Draft → Progress (siap dikirim ke vendor & terima barang)
+     * Progress → Completed (otomatis saat semua qty diterima)
      */
     public function finalize($id)
     {
@@ -373,8 +377,8 @@ class PengadaanController extends Controller
             return back()->with('error', 'Pengadaan tidak ditemukan');
         }
 
-        if ($this->isPengadaanFinalized($pengadaan)) {
-            return back()->with('error', 'Pengadaan sudah di-finalisasi sebelumnya');
+        if ($this->isPengadaanFinalized($pengadaan) || $this->isPengadaanProgress($pengadaan)) {
+            return back()->with('error', 'Pengadaan sudah di-finalisasi atau dalam progress');
         }
 
         // Cek apakah ada detail
@@ -383,14 +387,21 @@ class PengadaanController extends Controller
             return back()->with('error', 'Tidak ada barang di keranjang. Tambahkan minimal 1 barang.');
         }
 
-        // Update status menggunakan RAW SQL (NO Query Builder!)
+        // Update status pengadaan ke 'progress' (bukan 'completed')
+        // Progress = PO sudah disetujui dan dikirim ke vendor, siap menerima barang
+        // NOTE: legacy schema may only have a short `status` column (char(1) or enum)
+        // which cannot hold the full text 'progress'. To avoid "Data too long"
+        // errors we only set the textual `status_pengadaan` if the column exists.
+        // If `status_pengadaan` is not present, use legacy status 'A' (approved/progress).
         if (Schema::hasColumn('pengadaan', 'status_pengadaan')) {
             DB::statement("
                 UPDATE pengadaan
-                SET status = 'A', status_pengadaan = 'completed'
+                SET status_pengadaan = 'progress'
                 WHERE idpengadaan = ?
             ", [$id]);
         } else {
+            // Legacy schema: set status to 'A' (approved/in progress)
+            // Map: 'P' = draft, 'A' = approved/progress (can receive goods)
             DB::statement("
                 UPDATE pengadaan
                 SET status = 'A'
@@ -399,7 +410,7 @@ class PengadaanController extends Controller
         }
 
         return redirect()->route('pengadaan.index')
-            ->with('success', 'Pengadaan berhasil di-finalisasi');
+            ->with('success', 'Pengadaan berhasil di-finalisasi dan siap untuk penerimaan barang (status: Progress)');
     }
 
     /**
@@ -436,8 +447,8 @@ class PengadaanController extends Controller
     /**
      * Normalize status object/row to determine if pengadaan is finalized.
      * Accepts objects returned from select queries that may have either
-     * - status_pengadaan (text 'draft'/'completed') or
-     * - status (legacy 'P'/'A')
+     * - status_pengadaan (text 'draft'/'progress'/'completed') or
+     * - status (legacy 'P'/'progress'/'A')
      */
     private function isPengadaanFinalized($row)
     {
@@ -447,8 +458,62 @@ class PengadaanController extends Controller
             return strtolower($row->status_pengadaan) === 'completed';
         }
         if (isset($row->status) && $row->status !== null) {
-            return strtoupper($row->status) === 'A';
+            return strtoupper($row->status) === 'C';
         }
         return false;
+    }
+
+    /**
+     * Check if pengadaan is in progress status
+     */
+    private function isPengadaanProgress($row)
+    {
+        if (!$row) return false;
+        if (isset($row->status_pengadaan) && $row->status_pengadaan !== null) {
+            return strtolower($row->status_pengadaan) === 'progress';
+        }
+        if (isset($row->status) && $row->status !== null) {
+            return strtolower($row->status) === 'progress';
+        }
+        return false;
+    }
+
+    /**
+     * Delete pengadaan (hanya jika status = 'P' / Draft)
+     */
+    public function destroy($id)
+    {
+        // Cek status pengadaan
+        $pengadaan = DB::selectOne("SELECT status FROM pengadaan WHERE idpengadaan = ?", [$id]);
+
+        if (!$pengadaan) {
+            return redirect()->route('pengadaan.index')
+                ->with('error', 'Pengadaan tidak ditemukan');
+        }
+
+        // Hanya izinkan hapus jika status = 'P' (Draft)
+        if ($pengadaan->status !== 'P') {
+            return redirect()->route('pengadaan.show', $id)
+                ->with('error', 'Tidak dapat menghapus pengadaan yang sudah diproses (status bukan Draft)');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Hapus detail pengadaan (cascade)
+            DB::statement("DELETE FROM detail_pengadaan WHERE idpengadaan = ?", [$id]);
+
+            // Hapus pengadaan
+            DB::statement("DELETE FROM pengadaan WHERE idpengadaan = ?", [$id]);
+
+            DB::commit();
+
+            return redirect()->route('pengadaan.index')
+                ->with('success', 'Pengadaan berhasil dihapus');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('pengadaan.show', $id)
+                ->with('error', 'Gagal menghapus pengadaan: ' . $e->getMessage());
+        }
     }
 }

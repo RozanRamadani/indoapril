@@ -96,9 +96,10 @@
 
     <!-- Action Button -->
     @php
-        $isFinal = (isset($pengadaan->status_pengadaan) && strtolower($pengadaan->status_pengadaan) === 'completed') || (isset($pengadaan->status) && strtoupper($pengadaan->status) === 'A');
+        // Check if PO is in 'progress' status (ready to receive goods)
+        $isProgress = (isset($pengadaan->status_pengadaan) && strtolower($pengadaan->status_pengadaan) === 'progress') || (isset($pengadaan->status) && strtoupper($pengadaan->status) === 'A');
     @endphp
-    @if($isFinal)
+    @if($isProgress)
     <div class="flex justify-end">
         <form action="{{ route('penerimaan.store') }}" method="POST"
               onsubmit="return confirm('Apakah Anda yakin ingin membuat penerimaan untuk pengadaan ini?')">

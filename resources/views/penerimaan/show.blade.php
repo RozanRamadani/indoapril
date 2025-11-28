@@ -16,7 +16,7 @@
 
         @if(isset($penerimaan->status) && $penerimaan->status === 'A')
             <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <p class="font-semibold text-green-900">Penerimaan Sudah Finalized</p>
+                <p class="font-semibold text-green-900">Penerimaan Sudah Completed</p>
                 <p class="text-sm text-green-800">Data ini sudah tidak dapat diubah dan kartu_stok telah terupdate.</p>
             </div>
         @endif
@@ -53,9 +53,9 @@
                     <p class="text-sm text-gray-600">Status</p>
                     <p>
                         @if(isset($penerimaan->status) && $penerimaan->status === 'A')
-                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">Finalized</span>
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">Completed</span>
                         @else
-                            <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-semibold">Draft</span>
+                            <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">Draft</span>
                         @endif
                     </p>
                 </div>

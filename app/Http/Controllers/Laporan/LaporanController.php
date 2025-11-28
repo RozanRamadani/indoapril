@@ -45,12 +45,14 @@ class LaporanController extends Controller
     /**
      * Laporan Kartu Stok
      * Menggunakan SP: sp_filter_kartu_stok(idbarang, start_date, end_date)
+     * atau sp_kartu_stok_semua_barang(start_date, end_date) untuk semua barang
      */
     public function kartuStok(Request $request)
     {
         $idbarang = $request->input('idbarang');
         $startDate = $request->input('start_date', date('Y-m-01'));
         $endDate = $request->input('end_date', date('Y-m-d'));
+        $viewAll = $request->input('view_all', false); // Opsi lihat semua barang
 
         // Get list barang untuk dropdown
         $barangList = DB::select('SELECT idbarang, nama FROM barang WHERE status = 1 ORDER BY nama');
@@ -58,20 +60,24 @@ class LaporanController extends Controller
         $kartuStok = [];
         $namaBarang = '';
 
-        if ($idbarang) {
-            try {
-                // CALL SP READ-ONLY untuk kartu stok
+        try {
+            if ($viewAll || $idbarang === 'all') {
+                // Tampilkan kartu stok semua barang
+                $kartuStok = collect(DB::select('CALL sp_kartu_stok_semua_barang(?, ?)', [$startDate, $endDate]));
+                $namaBarang = 'Semua Barang';
+            } elseif ($idbarang) {
+                // Tampilkan kartu stok barang tertentu
                 $kartuStok = collect(DB::select('CALL sp_filter_kartu_stok(?, ?, ?)', [$idbarang, $startDate, $endDate]));
 
                 // Get nama barang
                 $barang = collect($barangList)->firstWhere('idbarang', $idbarang);
                 $namaBarang = $barang ? $barang->nama : '';
-            } catch (\Exception $e) {
-                return redirect()->back()->with('error', 'Gagal memuat kartu stok: ' . $e->getMessage());
             }
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memuat kartu stok: ' . $e->getMessage());
         }
 
-        return view('laporan.kartu_stok', compact('barangList', 'kartuStok', 'namaBarang'));
+        return view('laporan.kartu_stok', compact('barangList', 'kartuStok', 'namaBarang', 'idbarang', 'startDate', 'endDate', 'viewAll'));
     }
 
     /**
@@ -141,5 +147,34 @@ class LaporanController extends Controller
         }
 
         return view('laporan.pengadaan', compact('laporan', 'startDate', 'endDate'));
+    }
+
+    /**
+     * Laporan Penerimaan (Periode)
+     * Menggunakan SP: sp_report_penerimaan_periode(start_date, end_date, limit, offset)
+     */
+    public function penerimaan(Request $request)
+    {
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+
+        $laporan = [];
+        try {
+            // CALL sp_report_penerimaan_periode(start_date, end_date, limit, offset)
+            $laporan = collect(DB::select('CALL sp_report_penerimaan_periode(?, ?, ?, ?)',
+                [$startDate, $endDate, 500, 0]));
+
+            // Map total_barang and total_nilai with fallbacks
+            $laporan = $laporan->map(function ($row) {
+                // Pastikan total_barang dan total_nilai selalu ada
+                $row->total_barang = $row->total_qty ?? $row->jumlah_item ?? 0;
+                $row->total_nilai = $row->total_nilai ?? 0;
+                return $row;
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memuat laporan penerimaan: ' . $e->getMessage());
+        }
+
+        return view('laporan.penerimaan', compact('laporan', 'startDate', 'endDate'));
     }
 }

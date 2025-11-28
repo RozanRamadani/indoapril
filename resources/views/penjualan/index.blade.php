@@ -1,13 +1,13 @@
 <x-layout>
     <x-slot:title>Daftar Penjualan - IndoApril</x-slot:title>
-    
+
     <x-slot:header>
         <x-header title="Penjualan" subtitle="Daftar transaksi penjualan barang" />
     </x-slot:header>
 
     <div class="px-4 sm:px-6 lg:px-8">
         <div class="mb-6 flex justify-end">
-            <a href="{{ route('penjualan.create') }}" 
+            <a href="{{ route('penjualan.create') }}"
                class="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg shadow-md transition duration-150">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -41,13 +41,13 @@
                         {{ $item->username }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {{ $item->item_count }}
+                        {{ $item->jumlah_item }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         Rp {{ number_format($item->total_nilai, 0, ',', '.') }}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <a href="{{ route('penjualan.show', $item->idpenjualan) }}" 
+                        <a href="{{ route('penjualan.show', $item->idpenjualan) }}"
                            class="text-blue-600 hover:text-blue-900">Detail</a>
                     </td>
                 </tr>
