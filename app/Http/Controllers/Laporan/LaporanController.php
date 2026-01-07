@@ -5,6 +5,12 @@ namespace App\Http\Controllers\Laporan;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\StockOpnameExport;
+use App\Exports\PenjualanExport;
+use App\Exports\PengadaanExport;
+use App\Exports\PenerimaanExport;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class LaporanController extends Controller
 {
@@ -176,5 +182,61 @@ class LaporanController extends Controller
         }
 
         return view('laporan.penerimaan', compact('laporan', 'startDate', 'endDate'));
+    }
+
+    /**
+     * Export Stock Opname ke Excel
+     */
+    public function exportStockOpname(Request $request)
+    {
+        $search = $request->input('search');
+        $jenis = $request->input('jenis');
+
+        return Excel::download(
+            new StockOpnameExport($search, $jenis),
+            'stock-opname-' . date('Y-m-d') . '.xlsx'
+        );
+    }
+
+    /**
+     * Export Laporan Penjualan ke Excel
+     */
+    public function exportPenjualan(Request $request)
+    {
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+
+        return Excel::download(
+            new PenjualanExport($startDate, $endDate),
+            'laporan-penjualan-' . $startDate . '-' . $endDate . '.xlsx'
+        );
+    }
+
+    /**
+     * Export Laporan Pengadaan ke Excel
+     */
+    public function exportPengadaan(Request $request)
+    {
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+
+        return Excel::download(
+            new PengadaanExport($startDate, $endDate),
+            'laporan-pengadaan-' . $startDate . '-' . $endDate . '.xlsx'
+        );
+    }
+
+    /**
+     * Export Laporan Penerimaan ke Excel
+     */
+    public function exportPenerimaan(Request $request)
+    {
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+
+        return Excel::download(
+            new PenerimaanExport($startDate, $endDate),
+            'laporan-penerimaan-' . $startDate . '-' . $endDate . '.xlsx'
+        );
     }
 }

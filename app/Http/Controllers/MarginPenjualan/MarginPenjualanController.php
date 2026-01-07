@@ -72,6 +72,11 @@ class MarginPenjualanController extends Controller
 
             // INSERT margin penjualan baru
             DB::transaction(function () use ($validated) {
+                // Jika status baru adalah aktif (1), nonaktifkan semua margin lainnya
+                if ($validated['status'] == 1) {
+                    DB::update('UPDATE margin_penjualan SET status = 0, updated_at = NOW()');
+                }
+
                 DB::insert('INSERT INTO margin_penjualan (persen, status, iduser, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())', [
                     $validated['persen'],
                     $validated['status'],
@@ -129,19 +134,22 @@ class MarginPenjualanController extends Controller
         try {
 
             // UPDATE margin penjualan
-            $affected = DB::update('UPDATE margin_penjualan SET persen = ?, status = ?, iduser = ?, updated_at = NOW() WHERE idmargin_penjualan = ?', [
-                $validated['persen'],
-                $validated['status'],
-                $validated['iduser'],
-                $id
-            ]);
+            DB::transaction(function () use ($validated, $id) {
+                // Jika status baru adalah aktif (1), nonaktifkan semua margin lainnya
+                if ($validated['status'] == 1) {
+                    DB::update('UPDATE margin_penjualan SET status = 0, updated_at = NOW() WHERE idmargin_penjualan != ?', [$id]);
+                }
+
+                DB::update('UPDATE margin_penjualan SET persen = ?, status = ?, iduser = ?, updated_at = NOW() WHERE idmargin_penjualan = ?', [
+                    $validated['persen'],
+                    $validated['status'],
+                    $validated['iduser'],
+                    $id
+                ]);
+            });
 
             // cek hasil update
-            if ($affected > 0) {
-                return redirect()->route('margin_penjualan.index')->with('success', 'Margin penjualan berhasil diperbarui!');
-            } else {
-                return redirect()->back()->with('error', 'Tidak ada perubahan atau margin penjualan tidak ditemukan!');
-            }
+            return redirect()->route('margin_penjualan.index')->with('success', 'Margin penjualan berhasil diperbarui!');
 
             // Tangani error jika terjadi kegagalan
         } catch (\Exception $e) {
@@ -184,7 +192,15 @@ class MarginPenjualanController extends Controller
             $newStatus = $currentStatus[0]->status == 1 ? 0 : 1;
             $statusText = $newStatus == 1 ? 'Aktif' : 'Nonaktif';
 
-            DB::update('UPDATE margin_penjualan SET status = ?, updated_at = NOW() WHERE idmargin_penjualan = ?', [$newStatus, $id]);
+            DB::transaction(function () use ($newStatus, $id) {
+                // Jika akan mengaktifkan margin ini, nonaktifkan semua margin lainnya
+                if ($newStatus == 1) {
+                    DB::update('UPDATE margin_penjualan SET status = 0, updated_at = NOW() WHERE idmargin_penjualan != ?', [$id]);
+                }
+
+                DB::update('UPDATE margin_penjualan SET status = ?, updated_at = NOW() WHERE idmargin_penjualan = ?', [$newStatus, $id]);
+            });
+
             return redirect()->route('margin_penjualan.index')->with('success', "Status margin penjualan berhasil diubah menjadi {$statusText}!");
         } catch (\Exception $e) {
             return redirect()->route('margin_penjualan.index')->with('error', 'Gagal mengubah status: ' . $e->getMessage());

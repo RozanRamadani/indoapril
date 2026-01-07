@@ -11,29 +11,45 @@ class BarangController extends Controller
 {
 
     // Menampilkan daftar barang (menggunakan view active/inactive)
-    public function index()
+    public function index(Request $request)
     {
-        $show = request()->query('show');
+        $show = $request->query('show');
+        $search = $request->query('search');
+        $jenis = $request->query('jenis');
 
-        // Query langsung dengan JOIN ke satuan
-        if ($show === 'all') {
-            $barangs = DB::select('
-                SELECT b.*, s.nama_satuan
-                FROM barang b
-                LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
-                ORDER BY b.idbarang DESC
-            ');
-        } else {
-            $barangs = DB::select('
-                SELECT b.*, s.nama_satuan
-                FROM barang b
-                LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
-                WHERE b.status = 1
-                ORDER BY b.idbarang DESC
-            ', []);
+        // Build query
+        $query = DB::table('barang as b')
+            ->leftJoin('satuan as s', 'b.idsatuan', '=', 's.idsatuan')
+            ->select('b.*', 's.nama_satuan');
+
+        // Filter by status
+        if ($show !== 'all') {
+            $query->where('b.status', 1);
         }
 
-        return view('barang.index', compact('barangs'));
+        // Search by nama
+        if ($search) {
+            $query->where('b.nama', 'LIKE', "%{$search}%");
+        }
+
+        // Filter by jenis
+        if ($jenis) {
+            $query->where('b.jenis', $jenis);
+        }
+
+        // Order and paginate
+        $barangs = $query->orderBy('b.idbarang', 'DESC')->paginate(15)->withQueryString();
+
+        // Untuk dropdown jenis
+        $jenisOptions = [
+            'M' => 'Makanan',
+            'N' => 'Minuman',
+            'A' => 'Alat Tulis Kantor',
+            'K' => 'Kebersihan',
+            'B' => 'Bahan Baku'
+        ];
+
+        return view('barang.index', compact('barangs', 'jenisOptions'));
     }
 
     // Formulir tambah barang

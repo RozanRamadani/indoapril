@@ -144,6 +144,100 @@
 
         </div>
 
+        {{-- Stock Alerts Section (NEW) --}}
+        @if(count($stockAlerts) > 0)
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="px-6 py-4 bg-gradient-to-r from-red-600 to-orange-600">
+                <h3 class="text-lg font-bold text-white flex items-center justify-between">
+                    <span class="flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Stock Alert - Perlu Perhatian!
+                    </span>
+                    <span class="bg-white text-red-600 px-3 py-1 rounded-full text-sm font-bold">
+                        {{ $alertCounts['total'] }} Item
+                    </span>
+                </h3>
+            </div>
+            <div class="p-6">
+                <!-- Alert Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs text-red-600 font-medium mb-1">Stock Habis</div>
+                                <div class="text-3xl font-bold text-red-700">{{ $alertCounts['critical'] }}</div>
+                            </div>
+                            <svg class="w-12 h-12 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <p class="text-xs text-red-600 mt-2">Segera lakukan pengadaan!</p>
+                    </div>
+                    <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs text-orange-600 font-medium mb-1">Stock Kritis (≤ 5)</div>
+                                <div class="text-3xl font-bold text-orange-700">{{ $alertCounts['danger'] }}</div>
+                            </div>
+                            <svg class="w-12 h-12 text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <p class="text-xs text-orange-600 mt-2">Perlu pengadaan segera</p>
+                    </div>
+                    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs text-yellow-600 font-medium mb-1">Stock Rendah (≤ 10)</div>
+                                <div class="text-3xl font-bold text-yellow-700">{{ $alertCounts['warning'] }}</div>
+                            </div>
+                            <svg class="w-12 h-12 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <p class="text-xs text-yellow-600 mt-2">Rencanakan pengadaan</p>
+                    </div>
+                </div>
+
+                <!-- Alert List -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    @foreach($stockAlerts as $alert)
+                    <div class="flex items-center gap-3 p-3 rounded-lg border-l-4 {{
+                        $alert->alert_level == 'critical' ? 'bg-red-50 border-red-500' :
+                        ($alert->alert_level == 'danger' ? 'bg-orange-50 border-orange-500' : 'bg-yellow-50 border-yellow-500')
+                    }}">
+                        <div class="flex-shrink-0">
+                            @if($alert->alert_level == 'critical')
+                                <div class="w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center font-bold">0</div>
+                            @elseif($alert->alert_level == 'danger')
+                                <div class="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold">{{ $alert->stock }}</div>
+                            @else
+                                <div class="w-10 h-10 bg-yellow-500 text-white rounded-full flex items-center justify-center font-bold">{{ $alert->stock }}</div>
+                            @endif
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 truncate">{{ $alert->nama }}</p>
+                            <p class="text-xs text-gray-600">{{ $alert->nama_satuan ?? '-' }}</p>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                <!-- View All Link -->
+                <div class="mt-6 pt-4 border-t text-center">
+                    <a href="{{ route('laporan.stock_rendah') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white font-semibold rounded-lg hover:from-red-700 hover:to-orange-700 transition-all shadow-md">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        Lihat Laporan Stock Lengkap
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Two Column Layout --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

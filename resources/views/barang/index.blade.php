@@ -1,10 +1,10 @@
 <x-layout>
     <x-slot:title>Daftar Barang - IndoApril</x-slot:title>
-    
+
     <x-slot:header>
         <x-header title="Manajemen Barang" subtitle="Kelola data barang dan inventori Anda" />
     </x-slot:header>
-    
+
     <div class="px-4 sm:px-6 lg:px-8">
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -18,12 +18,12 @@
                     <div class="ml-5 w-0 flex-1">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">Total Barang</dt>
-                            <dd class="text-2xl font-semibold text-gray-900">{{ count($barangs) }}</dd>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ $barangs->total() }}</dd>
                         </dl>
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
@@ -34,12 +34,12 @@
                     <div class="ml-5 w-0 flex-1">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">Barang Aktif</dt>
-                            <dd class="text-2xl font-semibold text-gray-900">{{ count(array_filter($barangs, fn($b) => $b->status == 1)) }}</dd>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ $barangs->where('status', 1)->count() }}</dd>
                         </dl>
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3">
@@ -50,12 +50,12 @@
                     <div class="ml-5 w-0 flex-1">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">Nonaktif</dt>
-                            <dd class="text-2xl font-semibold text-gray-900">{{ count(array_filter($barangs, fn($b) => $b->status == 0)) }}</dd>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ $barangs->where('status', 0)->count() }}</dd>
                         </dl>
                     </div>
                 </div>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
@@ -66,13 +66,13 @@
                     <div class="ml-5 w-0 flex-1">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">Nilai Total</dt>
-                            <dd class="text-2xl font-semibold text-gray-900">Rp {{ number_format(array_sum(array_column($barangs, 'harga')), 0, ',', '.') }}</dd>
+                            <dd class="text-2xl font-semibold text-gray-900">Rp {{ number_format($barangs->sum('harga'), 0, ',', '.') }}</dd>
                         </dl>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <!-- Actions Bar -->
         <div class="bg-white rounded-lg shadow mb-6">
             <div class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
@@ -84,7 +84,7 @@
                         Tambah Barang
                     </a>
                 </div>
-                
+
                 <div class="flex items-center space-x-2">
                     <a href="{{ url('barang') }}" class="inline-flex items-center px-4 py-2 border {{ request()->query('show') != 'all' ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50' }} rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,55 @@
                 </div>
             </div>
         </div>
-        
+
+        <!-- Search & Filter Bar -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-6 py-4">
+                <form method="GET" action="{{ route('barang.index') }}" class="flex flex-col sm:flex-row gap-3">
+                    <!-- Hidden params -->
+                    @if(request('show'))
+                        <input type="hidden" name="show" value="{{ request('show') }}">
+                    @endif
+
+                    <!-- Search Box -->
+                    <div class="flex-1">
+                        <input type="text"
+                               name="search"
+                               value="{{ request('search') }}"
+                               placeholder="Cari nama barang..."
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+
+                    <!-- Jenis Filter -->
+                    <div class="w-full sm:w-48">
+                        <select name="jenis" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Semua Jenis</option>
+                            @foreach($jenisOptions as $key => $label)
+                                <option value="{{ $key }}" {{ request('jenis') == $key ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Buttons -->
+                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        Cari
+                    </button>
+
+                    @if(request('search') || request('jenis'))
+                        <a href="{{ route('barang.index', ['show' => request('show')]) }}"
+                           class="inline-flex items-center justify-center px-4 py-2 bg-gray-300 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-400">
+                            Reset
+                        </a>
+                    @endif
+                </form>
+            </div>
+        </div>
+
         <!-- Table -->
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="overflow-x-auto">
@@ -155,7 +203,7 @@
                                                 </svg>
                                                 Nonaktifkan
                                             </button>
-                                            
+
                                             <!-- Confirmation Modal -->
                                             <div x-show="showConfirm" class="fixed z-10 inset-0 overflow-y-auto" x-cloak>
                                                 <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -205,6 +253,13 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            @if($barangs->hasPages())
+                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                    {{ $barangs->links() }}
+                </div>
+            @endif
         </div>
     </div>
 </x-layout>

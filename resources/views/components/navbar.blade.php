@@ -164,7 +164,105 @@
             </div>
 
             <!-- User Menu (Desktop) -->
-            <div class="hidden sm:flex sm:items-center sm:ml-6">
+            <div class="hidden sm:flex sm:items-center sm:ml-6 space-x-3">
+
+                <!-- Stock Alert Notification Bell -->
+                @php
+                    $stockAlertCount = \Illuminate\Support\Facades\DB::selectOne('
+                        SELECT COUNT(*) as total
+                        FROM barang b
+                        INNER JOIN kartu_stok ks ON b.idbarang = ks.idbarang
+                        WHERE b.status = 1 AND ks.stock <= 10
+                    ')->total ?? 0;
+                @endphp
+
+                @if($stockAlertCount > 0)
+                <div class="relative" x-data="{ notifOpen: false }">
+                    <button @click="notifOpen = !notifOpen"
+                            class="relative flex items-center justify-center w-10 h-10 text-white hover:bg-indigo-500 rounded-full transition-colors duration-200">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                            {{ $stockAlertCount }}
+                        </span>
+                    </button>
+
+                    <div x-show="notifOpen"
+                         @click.away="notifOpen = false"
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         class="absolute right-0 mt-2 w-80 rounded-lg shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-50"
+                         style="display: none;">
+                        <div class="p-4 bg-gradient-to-r from-red-600 to-orange-600">
+                            <h3 class="text-white font-bold flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Stock Alert
+                            </h3>
+                            <p class="text-white text-sm mt-1">{{ $stockAlertCount }} barang perlu perhatian</p>
+                        </div>
+                        <div class="max-h-96 overflow-y-auto">
+                            @php
+                                $alerts = \Illuminate\Support\Facades\DB::select('
+                                    SELECT b.nama, ks.stock,
+                                           CASE
+                                               WHEN ks.stock = 0 THEN "critical"
+                                               WHEN ks.stock <= 5 THEN "danger"
+                                               WHEN ks.stock <= 10 THEN "warning"
+                                           END as level
+                                    FROM barang b
+                                    INNER JOIN kartu_stok ks ON b.idbarang = ks.idbarang
+                                    WHERE b.status = 1 AND ks.stock <= 10
+                                    ORDER BY ks.stock ASC
+                                    LIMIT 10
+                                ');
+                            @endphp
+                            <div class="divide-y divide-gray-100">
+                                @foreach($alerts as $alert)
+                                <div class="p-3 hover:bg-gray-50 transition-colors">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-gray-900">{{ $alert->nama }}</p>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                @if($alert->level == 'critical')
+                                                    <span class="text-red-600 font-semibold">Stock Habis!</span>
+                                                @elseif($alert->level == 'danger')
+                                                    <span class="text-orange-600 font-semibold">Stock Kritis</span>
+                                                @else
+                                                    <span class="text-yellow-600 font-semibold">Stock Rendah</span>
+                                                @endif
+                                            </p>
+                                        </div>
+                                        <div class="ml-3">
+                                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-white font-bold text-sm {{
+                                                $alert->level == 'critical' ? 'bg-red-500' :
+                                                ($alert->level == 'danger' ? 'bg-orange-500' : 'bg-yellow-500')
+                                            }}">
+                                                {{ $alert->stock }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="p-3 bg-gray-50 border-t">
+                            <a href="{{ route('laporan.stock_rendah') }}"
+                               class="block text-center text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                Lihat Semua Alert →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                <!-- User Menu -->
                 <div class="relative" x-data="{ userMenuOpen: false }">
                     <button @click="userMenuOpen = !userMenuOpen"
                             class="flex items-center text-white hover:text-indigo-100 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">

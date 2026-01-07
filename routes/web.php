@@ -132,5 +132,11 @@ Route::middleware(['check.auth'])->group(function () {
 
         // Laporan Penerimaan
         Route::get('penerimaan', [LaporanController::class, 'penerimaan'])->name('laporan.penerimaan');
+
+        // Export Routes
+        Route::get('stock-opname/export', [LaporanController::class, 'exportStockOpname'])->name('laporan.stock_opname.export');
+        Route::get('penjualan/export', [LaporanController::class, 'exportPenjualan'])->name('laporan.penjualan.export');
+        Route::get('pengadaan/export', [LaporanController::class, 'exportPengadaan'])->name('laporan.pengadaan.export');
+        Route::get('penerimaan/export', [LaporanController::class, 'exportPenerimaan'])->name('laporan.penerimaan.export');
     });
 });

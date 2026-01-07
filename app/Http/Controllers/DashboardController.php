@@ -127,6 +127,30 @@ class DashboardController extends Controller
             LIMIT 5
         ');
 
+        // Stock Alerts - Barang dengan stock rendah atau habis
+        $stockAlerts = DB::select('
+            SELECT b.idbarang, b.nama, b.jenis, s.nama_satuan, ks.stock,
+                   CASE
+                       WHEN ks.stock = 0 THEN "critical"
+                       WHEN ks.stock <= 5 THEN "danger"
+                       WHEN ks.stock <= 10 THEN "warning"
+                       ELSE "safe"
+                   END as alert_level
+            FROM barang b
+            INNER JOIN kartu_stok ks ON b.idbarang = ks.idbarang
+            LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+            WHERE b.status = 1 AND ks.stock <= 10
+            ORDER BY ks.stock ASC, b.nama ASC
+        ');
+
+        // Count alerts by level
+        $alertCounts = [
+            'critical' => count(array_filter($stockAlerts, fn($a) => $a->alert_level == 'critical')),
+            'danger' => count(array_filter($stockAlerts, fn($a) => $a->alert_level == 'danger')),
+            'warning' => count(array_filter($stockAlerts, fn($a) => $a->alert_level == 'warning')),
+            'total' => count($stockAlerts)
+        ];
+
         return view('dashboard', [
             'totalBarang' => $barangStats->total_barang,
             'barangAktif' => $barangStats->barang_aktif,
@@ -148,7 +172,9 @@ class DashboardController extends Controller
             'statistikJenis' => $statistikJenis,
             'transaksi7Hari' => $transaksi7Hari,
             'topBarang' => $topBarang,
-            'totalUser' => $transaksiStats->total_user
+            'totalUser' => $transaksiStats->total_user,
+            'stockAlerts' => $stockAlerts,
+            'alertCounts' => $alertCounts
         ]);
     }
 }
