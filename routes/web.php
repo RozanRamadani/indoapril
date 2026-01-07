@@ -106,6 +106,7 @@ Route::middleware(['check.auth'])->group(function () {
 
         // Penjualan
         Route::resource('penjualan', PenjualanController::class)->only(['index', 'create', 'store', 'show']);
+        Route::get('penjualan/{id}/invoice', [PenjualanController::class, 'printInvoice'])->name('penjualan.printInvoice');
 
         // ==================== RETUR ====================
         Route::prefix('retur')->name('retur.')->group(function () {

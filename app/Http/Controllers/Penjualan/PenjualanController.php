@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
  * PenjualanController - Sales Transaction Management
@@ -198,6 +199,49 @@ class PenjualanController extends Controller
         ", [$penjualan->margin_persen ?? 0, $id]);
 
         return view('penjualan.show', compact('penjualan', 'details'));
+    }
+
+    /**
+     * Generate PDF Invoice for penjualan
+     */
+    public function printInvoice($id)
+    {
+        // Get penjualan header
+        $penjualan = DB::selectOne("
+            SELECT
+                pj.*,
+                u.username,
+                m.persen AS margin_persen
+            FROM penjualan pj
+            LEFT JOIN user u ON pj.iduser = u.iduser
+            LEFT JOIN margin_penjualan m ON pj.idmargin_penjualan = m.idmargin_penjualan
+            WHERE pj.idpenjualan = ?
+        ", [$id]);
+
+        if (!$penjualan) {
+            return redirect()->route('penjualan.index')
+                ->with('error', 'Penjualan tidak ditemukan');
+        }
+
+        // Get detail penjualan
+        $details = DB::select("
+            SELECT
+                dp.*,
+                b.nama AS nama_barang,
+                b.jenis,
+                s.nama_satuan,
+                fn_calc_margin(dp.subtotal, ?) AS nilai_margin
+            FROM detail_penjualan dp
+            INNER JOIN barang b ON dp.idbarang = b.idbarang
+            LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+            WHERE dp.idpenjualan = ?
+            ORDER BY b.nama
+        ", [$penjualan->margin_persen ?? 0, $id]);
+
+        $pdf = Pdf::loadView('penjualan.invoice', compact('penjualan', 'details'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Invoice-' . $penjualan->idpenjualan . '.pdf');
     }
 
 
