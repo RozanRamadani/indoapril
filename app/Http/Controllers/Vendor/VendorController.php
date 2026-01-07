@@ -12,12 +12,30 @@ class VendorController extends Controller
     // Menampilkan data vendor
     public function index(Request $request)
     {
-        // Gunakan view untuk filter status
-        if ($request->query('show') === 'all') {
-            $vendors = DB::select('SELECT * FROM master_vendor_view');
-        } else {
-            $vendors = DB::select('SELECT * FROM master_vendor_active_view');
+        $show = $request->query('show');
+        $search = $request->query('search');
+        $badanHukum = $request->query('badan_hukum');
+
+        // Build query with pagination
+        $query = DB::table('vendor');
+
+        // Filter by status
+        if ($show !== 'all') {
+            $query->where('status', 'Y');
         }
+
+        // Search by name
+        if ($search) {
+            $query->where('nama_vendor', 'LIKE', "%{$search}%");
+        }
+
+        // Filter by badan hukum
+        if ($badanHukum) {
+            $query->where('badan_hukum', $badanHukum);
+        }
+
+        // Paginate results
+        $vendors = $query->orderBy('idvendor', 'DESC')->paginate(15)->withQueryString();
 
         return view('vendor.index', compact('vendors'));
     }

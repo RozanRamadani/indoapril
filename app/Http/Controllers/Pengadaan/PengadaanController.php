@@ -27,32 +27,33 @@ class PengadaanController extends Controller
         }
         // Menhindari error jika kolom jumlah_diterima tidak ada
         $hasJumlahDiterima = Schema::hasColumn('detail_pengadaan', 'jumlah_diterima');
-        $totalDiterimaSelect = $hasJumlahDiterima ? "SUM(COALESCE(dp.jumlah_diterima, 0)) AS total_diterima" : "0 AS total_diterima";
+        $totalDiterimaSelect = $hasJumlahDiterima ? "COALESCE(dp.jumlah_diterima, 0)" : "0";
 
-        // Query untuk mendapatkan daftar pengadaan dengan total item dan total jumlah diterima
-        $sql =
-            "SELECT\n" .
-            "    p.idpengadaan,\n" .
-            "    p.created_at,\n" .
-            "    p.vendor_idvendor as idvendor,\n" .
-            "    v.nama_vendor,\n" .
-            "    p.subtotal_nilai,\n" .
-            "    p.ppn,\n" .
-            "    p.total_nilai,\n" .
-            "    " . $statusSelect . ",\n" .
-            "    u.username,\n" .
-            "    COUNT(dp.iddetail_pengadaan) AS total_item,\n" .
-            "    SUM(dp.jumlah) AS total_jumlah,\n" .
-            "    " . $totalDiterimaSelect . "\n" .
-            "FROM pengadaan p\n" .
-            "INNER JOIN vendor v ON p.vendor_idvendor = v.idvendor\n" .
-            "LEFT JOIN user u ON p.user_iduser = u.iduser\n" .
-            "LEFT JOIN detail_pengadaan dp ON p.idpengadaan = dp.idpengadaan\n" .
-            "GROUP BY p.idpengadaan, p.created_at, p.vendor_idvendor, v.nama_vendor,\n" .
-            "         p.subtotal_nilai, p.ppn, p.total_nilai, p.status, u.username\n" .
-            "ORDER BY p.created_at DESC";
-
-        $pengadaan = DB::select($sql);
+        // Query dengan Query Builder dan pagination
+        $pengadaan = DB::table('pengadaan as p')
+            ->join('vendor as v', 'p.vendor_idvendor', '=', 'v.idvendor')
+            ->leftJoin('user as u', 'p.user_iduser', '=', 'u.iduser')
+            ->leftJoin('detail_pengadaan as dp', 'p.idpengadaan', '=', 'dp.idpengadaan')
+            ->select(
+                'p.idpengadaan',
+                'p.created_at',
+                'p.vendor_idvendor as idvendor',
+                'v.nama_vendor',
+                'p.subtotal_nilai',
+                'p.ppn',
+                'p.total_nilai',
+                DB::raw($statusSelect),
+                'u.username',
+                DB::raw('COUNT(dp.iddetail_pengadaan) AS total_item'),
+                DB::raw('SUM(dp.jumlah) AS total_jumlah'),
+                DB::raw("SUM({$totalDiterimaSelect}) AS total_diterima")
+            )
+            ->groupBy('p.idpengadaan', 'p.created_at', 'p.vendor_idvendor', 'v.nama_vendor',
+                     'p.subtotal_nilai', 'p.ppn', 'p.total_nilai', 'p.status', 'u.username',
+                     'p.status_pengadaan')
+            ->orderBy('p.created_at', 'DESC')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('pengadaan.index', compact('pengadaan'));
     }

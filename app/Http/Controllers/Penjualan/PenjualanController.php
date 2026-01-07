@@ -19,25 +19,26 @@ class PenjualanController extends Controller
 {
     public function index()
     {
-        $penjualan = DB::select("
-            SELECT
-                pj.idpenjualan,
-                pj.created_at,
-                pj.subtotal_nilai,
-                pj.ppn,
-                pj.total_nilai,
-                u.username,
-                m.persen AS margin_persen,
-                COUNT(dp.iddetail_penjualan) AS jumlah_item,
-                SUM(dp.jumlah) AS total_qty
-            FROM penjualan pj
-            LEFT JOIN user u ON pj.iduser = u.iduser
-            LEFT JOIN margin_penjualan m ON pj.idmargin_penjualan = m.idmargin_penjualan
-            LEFT JOIN detail_penjualan dp ON pj.idpenjualan = dp.idpenjualan
-            GROUP BY pj.idpenjualan, pj.created_at, pj.subtotal_nilai,
-                     pj.ppn, pj.total_nilai, u.username, m.persen
-            ORDER BY pj.created_at DESC
-        ");
+        $penjualan = DB::table('penjualan as pj')
+            ->leftJoin('user as u', 'pj.iduser', '=', 'u.iduser')
+            ->leftJoin('margin_penjualan as m', 'pj.idmargin_penjualan', '=', 'm.idmargin_penjualan')
+            ->leftJoin('detail_penjualan as dp', 'pj.idpenjualan', '=', 'dp.idpenjualan')
+            ->select(
+                'pj.idpenjualan',
+                'pj.created_at',
+                'pj.subtotal_nilai',
+                'pj.ppn',
+                'pj.total_nilai',
+                'u.username',
+                'm.persen as margin_persen',
+                DB::raw('COUNT(dp.iddetail_penjualan) AS jumlah_item'),
+                DB::raw('SUM(dp.jumlah) AS total_qty')
+            )
+            ->groupBy('pj.idpenjualan', 'pj.created_at', 'pj.subtotal_nilai',
+                     'pj.ppn', 'pj.total_nilai', 'u.username', 'm.persen')
+            ->orderBy('pj.created_at', 'DESC')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('penjualan.index', compact('penjualan'));
     }

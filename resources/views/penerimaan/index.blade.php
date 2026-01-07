@@ -118,6 +118,13 @@
                     @endforelse
                 </tbody>
             </table>
+
+            <!-- Pagination -->
+            @if($penerimaan->hasPages())
+                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                    {{ $penerimaan->links() }}
+                </div>
+            @endif
         </div>
     </div>
 </x-layout>

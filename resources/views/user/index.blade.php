@@ -36,7 +36,7 @@
                         <div class="ml-5 w-0 flex-1">
                             <dl>
                                 <dt class="text-sm font-medium text-gray-500 truncate">Total User</dt>
-                                <dd class="text-2xl font-semibold text-gray-900">{{ $totalUser }}</dd>
+                                <dd class="text-2xl font-semibold text-gray-900">{{ $users->total() }}</dd>
                             </dl>
                         </div>
                     </div>
@@ -72,6 +72,51 @@
                             Tambah User
                         </a>
                     </div>
+                </div>
+            </div>
+
+            <!-- Search & Filter Bar -->
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4">
+                    <form method="GET" action="{{ route('user.index') }}" class="flex flex-col sm:flex-row gap-3">
+                        <input type="hidden" name="tab" value="users">
+
+                        <!-- Search Box -->
+                        <div class="flex-1">
+                            <input type="text"
+                                   name="search"
+                                   value="{{ request('search') }}"
+                                   placeholder="Cari username atau nama..."
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+
+                        <!-- Role Filter -->
+                        <div class="w-full sm:w-48">
+                            <select name="role" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">Semua Role</option>
+                                @foreach($allRoles as $role)
+                                    <option value="{{ $role->idrole }}" {{ request('role') == $role->idrole ? 'selected' : '' }}>
+                                        {{ $role->nama_role }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Buttons -->
+                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Cari
+                        </button>
+
+                        @if(request('search') || request('role'))
+                            <a href="{{ route('user.index', ['tab' => 'users']) }}"
+                               class="inline-flex items-center justify-center px-4 py-2 bg-gray-300 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-400">
+                                Reset
+                            </a>
+                        @endif
+                    </form>
                 </div>
             </div>
 
@@ -120,6 +165,13 @@
                         @endforelse
                     </tbody>
                 </table>
+
+                <!-- Pagination -->
+                @if($users->hasPages())
+                    <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                        {{ $users->links() }}
+                    </div>
+                @endif
             </div>
 
         @else

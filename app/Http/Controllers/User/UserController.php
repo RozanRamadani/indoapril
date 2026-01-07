@@ -15,13 +15,29 @@ class UserController extends Controller
     {
         $tab = $request->query('tab', 'users'); // 'users' or 'roles'
 
-        // Get users dengan JOIN manual
-        $users = DB::select('
-            SELECT u.*, r.nama_role
-            FROM user u
-            LEFT JOIN role r ON u.idrole = r.idrole
-            ORDER BY u.username
-        ');
+        // Get search and filter parameters
+        $search = $request->get('search');
+        $roleFilter = $request->get('role');
+
+        // Get users dengan Query Builder
+        $usersQuery = DB::table('user as u')
+            ->leftJoin('role as r', 'u.idrole', '=', 'r.idrole')
+            ->select('u.*', 'r.nama_role');
+
+        // Apply search filter
+        if ($search) {
+            $usersQuery->where(function($query) use ($search) {
+                $query->where('u.username', 'LIKE', "%{$search}%")
+                      ->orWhere('u.nama_user', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Apply role filter
+        if ($roleFilter) {
+            $usersQuery->where('u.idrole', $roleFilter);
+        }
+
+        $users = $usersQuery->orderBy('u.username')->paginate(15)->withQueryString();
 
         // Get roles with user count
         $roles = DB::select(
@@ -31,6 +47,9 @@ class UserController extends Controller
              GROUP BY r.idrole, r.nama_role
              ORDER BY r.nama_role'
         );
+
+        // Get all roles for filter dropdown
+        $allRoles = DB::table('role')->orderBy('nama_role')->get();
 
         // Consolidated statistics
         $stats = DB::selectOne('
@@ -50,6 +69,7 @@ class UserController extends Controller
         return view('user.index', [
             'users' => $users,
             'roles' => $roles,
+            'allRoles' => $allRoles,
             'tab' => $tab,
             'totalUser' => $stats->total_user,
             'totalRole' => $stats->total_role,

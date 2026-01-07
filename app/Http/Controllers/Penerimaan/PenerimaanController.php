@@ -22,25 +22,27 @@ class PenerimaanController extends Controller
      */
     public function index()
     {
-        $penerimaan = DB::select("
-            SELECT
-                pen.idpenerimaan,
-                pen.created_at,
-                pen.status,
-                pen.idpengadaan,
-                pen.iduser,
-                u.username,
-                v.nama_vendor,
-                COUNT(dpen.iddetail_penerimaan) AS total_item,
-                SUM(dpen.jumlah_terima) AS total_jumlah
-            FROM penerimaan pen
-            LEFT JOIN user u ON pen.iduser = u.iduser
-            LEFT JOIN pengadaan p ON pen.idpengadaan = p.idpengadaan
-            LEFT JOIN vendor v ON p.vendor_idvendor = v.idvendor
-            LEFT JOIN detail_penerimaan dpen ON pen.idpenerimaan = dpen.idpenerimaan
-            GROUP BY pen.idpenerimaan, pen.created_at, pen.status, pen.idpengadaan, pen.iduser, u.username, v.nama_vendor
-            ORDER BY pen.created_at DESC
-        ");
+        $penerimaan = DB::table('penerimaan as pen')
+            ->leftJoin('user as u', 'pen.iduser', '=', 'u.iduser')
+            ->leftJoin('pengadaan as p', 'pen.idpengadaan', '=', 'p.idpengadaan')
+            ->leftJoin('vendor as v', 'p.vendor_idvendor', '=', 'v.idvendor')
+            ->leftJoin('detail_penerimaan as dpen', 'pen.idpenerimaan', '=', 'dpen.idpenerimaan')
+            ->select(
+                'pen.idpenerimaan',
+                'pen.created_at',
+                'pen.status',
+                'pen.idpengadaan',
+                'pen.iduser',
+                'u.username',
+                'v.nama_vendor',
+                DB::raw('COUNT(dpen.iddetail_penerimaan) AS total_item'),
+                DB::raw('SUM(dpen.jumlah_terima) AS total_jumlah')
+            )
+            ->groupBy('pen.idpenerimaan', 'pen.created_at', 'pen.status', 'pen.idpengadaan',
+                     'pen.iduser', 'u.username', 'v.nama_vendor')
+            ->orderBy('pen.created_at', 'DESC')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('penerimaan.index', compact('penerimaan'));
     }
