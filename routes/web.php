@@ -103,6 +103,7 @@ Route::middleware(['check.auth'])->group(function () {
             Route::delete('/{id}/delete-item/{detailId}', [PenerimaanController::class, 'deleteItem'])->name('deleteItem');
             Route::post('/{id}/finalize', [PenerimaanController::class, 'finalize'])->name('finalize');
             Route::delete('/{id}', [PenerimaanController::class, 'destroy'])->name('destroy');
+            Route::get('/{id}/goods-receipt', [PenerimaanController::class, 'printGRN'])->name('printGRN');
         });
 
         // Penjualan

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
  * 1 Penerimaan = 1 Pengadaan (tidak support multiple pengadaan)
@@ -520,5 +521,60 @@ class PenerimaanController extends Controller
             return redirect()->route('penerimaan.show', $id)
                 ->with('error', 'Gagal menghapus penerimaan: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Generate PDF Goods Receipt Note (GRN)
+     */
+    public function printGRN($id)
+    {
+        // Get penerimaan info with vendor details
+        $hasAlamat = Schema::hasColumn('vendor', 'alamat');
+        $hasTelp = Schema::hasColumn('vendor', 'telp');
+
+        $vendorColumns = "v.nama_vendor";
+        if ($hasAlamat) {
+            $vendorColumns .= ", v.alamat";
+        }
+        if ($hasTelp) {
+            $vendorColumns .= ", v.telp";
+        }
+
+        $penerimaan = DB::selectOne("
+            SELECT
+                pen.*,
+                u.username,
+                p.idpengadaan,
+                " . $vendorColumns . "
+            FROM penerimaan pen
+            LEFT JOIN user u ON pen.iduser = u.iduser
+            LEFT JOIN pengadaan p ON pen.idpengadaan = p.idpengadaan
+            LEFT JOIN vendor v ON p.vendor_idvendor = v.idvendor
+            WHERE pen.idpenerimaan = ?
+        ", [$id]);
+
+        if (!$penerimaan) {
+            return redirect()->route('penerimaan.index')
+                ->with('error', 'Penerimaan tidak ditemukan');
+        }
+
+        // Get detail penerimaan
+        $details = DB::select("
+            SELECT
+                dpen.*,
+                b.nama AS nama_barang,
+                b.jenis,
+                s.nama_satuan
+            FROM detail_penerimaan dpen
+            INNER JOIN barang b ON dpen.idbarang = b.idbarang
+            LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+            WHERE dpen.idpenerimaan = ?
+            ORDER BY b.nama
+        ", [$id]);
+
+        $pdf = Pdf::loadView('penerimaan.goods-receipt', compact('penerimaan', 'details'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream('GRN-' . $penerimaan->idpenerimaan . '.pdf');
     }
 }

@@ -525,6 +525,7 @@ class PengadaanController extends Controller
     {
         // Get pengadaan info
         $hasStatus = Schema::hasColumn('pengadaan', 'status_pengadaan');
+        
         if ($hasStatus) {
             $statusSelect = "(CASE WHEN p.status_pengadaan IS NOT NULL AND p.status_pengadaan <> '' THEN p.status_pengadaan WHEN p.status = 'C' THEN 'completed' WHEN p.status = 'A' THEN 'progress' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
         } else {
