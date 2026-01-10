@@ -88,6 +88,7 @@ Route::middleware(['check.auth'])->group(function () {
             Route::delete('/{id}/delete-item/{detailId}', [PengadaanController::class, 'deleteItem'])->name('deleteItem');
             Route::post('/{id}/finalize', [PengadaanController::class, 'finalize'])->name('finalize');
             Route::delete('/{id}', [PengadaanController::class, 'destroy'])->name('destroy');
+            Route::get('/{id}/purchase-order', [PengadaanController::class, 'printPO'])->name('printPO');
         });
 
         // ==================== PENERIMAAN (SIMPLIFIED - 1 Pengadaan per Penerimaan) ====================

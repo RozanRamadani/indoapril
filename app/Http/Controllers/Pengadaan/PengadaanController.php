@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PengadaanController extends Controller
 {
@@ -49,8 +50,7 @@ class PengadaanController extends Controller
                 DB::raw("SUM({$totalDiterimaSelect}) AS total_diterima")
             )
             ->groupBy('p.idpengadaan', 'p.created_at', 'p.vendor_idvendor', 'v.nama_vendor',
-                     'p.subtotal_nilai', 'p.ppn', 'p.total_nilai', 'p.status', 'u.username',
-                     'p.status_pengadaan')
+                     'p.subtotal_nilai', 'p.ppn', 'p.total_nilai', 'p.status', 'u.username')
             ->orderBy('p.created_at', 'DESC')
             ->paginate(15)
             ->withQueryString();
@@ -516,5 +516,69 @@ class PengadaanController extends Controller
             return redirect()->route('pengadaan.show', $id)
                 ->with('error', 'Gagal menghapus pengadaan: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Generate PDF Purchase Order
+     */
+    public function printPO($id)
+    {
+        // Get pengadaan info
+        $hasStatus = Schema::hasColumn('pengadaan', 'status_pengadaan');
+        if ($hasStatus) {
+            $statusSelect = "(CASE WHEN p.status_pengadaan IS NOT NULL AND p.status_pengadaan <> '' THEN p.status_pengadaan WHEN p.status = 'C' THEN 'completed' WHEN p.status = 'A' THEN 'progress' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
+        } else {
+            $statusSelect = "(CASE WHEN p.status = 'C' THEN 'completed' WHEN p.status = 'A' THEN 'progress' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
+        }
+
+        // Check kolom vendor yang tersedia
+        $hasAlamat = Schema::hasColumn('vendor', 'alamat');
+        $hasTelp = Schema::hasColumn('vendor', 'telp');
+
+        $vendorColumns = "v.nama_vendor";
+        if ($hasAlamat) {
+            $vendorColumns .= ", v.alamat";
+        }
+        if ($hasTelp) {
+            $vendorColumns .= ", v.telp";
+        }
+
+        $sql =
+            "SELECT\n" .
+            "    p.*,\n" .
+            "    " . $vendorColumns . ",\n" .
+            "    u.username,\n" .
+            "    " . $statusSelect . "\n" .
+            "FROM pengadaan p\n" .
+            "INNER JOIN vendor v ON p.vendor_idvendor = v.idvendor\n" .
+            "LEFT JOIN user u ON p.user_iduser = u.iduser\n" .
+            "WHERE p.idpengadaan = ?";
+
+        $pengadaan = DB::selectOne($sql, [$id]);
+
+        if (!$pengadaan) {
+            return redirect()->route('pengadaan.index')
+                ->with('error', 'Pengadaan tidak ditemukan');
+        }
+
+        // Get detail pengadaan
+        $orderCol = Schema::hasColumn('detail_pengadaan', 'created_at') ? 'dp.created_at' : 'dp.iddetail_pengadaan';
+        $details = DB::select("
+            SELECT
+                dp.*,
+                b.nama AS nama_barang,
+                b.jenis,
+                s.nama_satuan
+            FROM detail_pengadaan dp
+            INNER JOIN barang b ON dp.idbarang = b.idbarang
+            LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+            WHERE dp.idpengadaan = ?
+            ORDER BY " . $orderCol . " DESC
+        ", [$id]);
+
+        $pdf = Pdf::loadView('pengadaan.purchase-order', compact('pengadaan', 'details'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream('PO-' . $pengadaan->idpengadaan . '.pdf');
     }
 }

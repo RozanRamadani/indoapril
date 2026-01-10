@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #{{ $penjualan->idpenjualan }}</title>
+    <title>Purchase Order #{{ $pengadaan->idpengadaan }}</title>
     <style>
         * {
             margin: 0;
@@ -51,13 +51,13 @@
             color: #666;
             line-height: 1.3;
         }
-        .invoice-title {
+        .po-title {
             font-size: 26px;
-            color: #333;
+            color: #e74c3c;
             font-weight: bold;
             margin-bottom: 3px;
         }
-        .invoice-number {
+        .po-number {
             font-size: 11px;
             color: #666;
             font-weight: normal;
@@ -67,13 +67,28 @@
             display: table;
             clear: both;
         }
-        .invoice-info {
+        .info-section {
             margin-bottom: 12px;
-            font-size: 9px;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
         }
-        .invoice-info-row {
+        .info-box {
+            width: 48%;
+            float: left;
+            padding: 8px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            font-size: 9px;
+        }
+        .info-box:first-child {
+            margin-right: 4%;
+        }
+        .info-box h3 {
+            font-size: 10px;
+            color: #e74c3c;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #e74c3c;
+            padding-bottom: 3px;
+        }
+        .info-row {
             margin-bottom: 3px;
         }
         .info-label {
@@ -147,23 +162,48 @@
             font-size: 10px;
             font-weight: bold;
         }
-        .notes {
+        .terms {
             clear: both;
-            margin-top: 12px;
-            padding: 8px;
+            margin-top: 15px;
+            padding: 10px;
             background-color: #f9f9f9;
             border-left: 3px solid #e74c3c;
             font-size: 8px;
         }
-        .notes h3 {
+        .terms h3 {
             font-size: 9px;
-            margin-bottom: 4px;
+            margin-bottom: 5px;
             color: #e74c3c;
         }
-        .notes p {
-            font-size: 8px;
-            color: #666;
-            line-height: 1.4;
+        .terms ul {
+            margin-left: 15px;
+            line-height: 1.6;
+        }
+        .signature-section {
+            clear: both;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .signature-box {
+            width: 48%;
+            float: left;
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            font-size: 9px;
+        }
+        .signature-box:first-child {
+            margin-right: 4%;
+        }
+        .signature-box h4 {
+            font-size: 9px;
+            margin-bottom: 40px;
+            color: #555;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            padding-top: 5px;
+            margin-top: 5px;
         }
         .footer {
             clear: both;
@@ -199,28 +239,47 @@
                 </div>
             </div>
             <div class="header-right">
-                <div class="invoice-title">INVOICE</div>
-                <div class="invoice-number">#{{ str_pad($penjualan->idpenjualan, 6, '0', STR_PAD_LEFT) }}</div>
+                <div class="po-title">PURCHASE ORDER</div>
+                <div class="po-number">PO #{{ str_pad($pengadaan->idpengadaan, 6, '0', STR_PAD_LEFT) }}</div>
             </div>
         </div>
 
-        <!-- Invoice Info -->
-        <div class="invoice-info clearfix">
-            <div class="invoice-info-row">
-                <span class="info-label">Tanggal:</span>
-                <span>{{ date('d F Y', strtotime($penjualan->created_at)) }}</span>
+        <!-- Info Section -->
+        <div class="info-section clearfix">
+            <div class="info-box">
+                <h3>Kepada Vendor:</h3>
+                <div class="info-row">
+                    <strong>{{ $pengadaan->nama_vendor }}</strong>
+                </div>
+                @if(isset($pengadaan->alamat) && $pengadaan->alamat)
+                <div class="info-row">
+                    {{ $pengadaan->alamat }}
+                </div>
+                @endif
+                @if(isset($pengadaan->telp) && $pengadaan->telp)
+                <div class="info-row">
+                    Telp: {{ $pengadaan->telp }}
+                </div>
+                @endif
             </div>
-            <div class="invoice-info-row">
-                <span class="info-label">Waktu:</span>
-                <span>{{ date('H:i:s', strtotime($penjualan->created_at)) }}</span>
-            </div>
-            <div class="invoice-info-row">
-                <span class="info-label">Petugas:</span>
-                <span>{{ $penjualan->username }}</span>
-            </div>
-            <div class="invoice-info-row">
-                <span class="info-label">Margin:</span>
-                <span>{{ $penjualan->margin_persen ?? 0 }}%</span>
+            <div class="info-box">
+                <h3>Informasi PO:</h3>
+                <div class="info-row">
+                    <span class="info-label">Tanggal:</span>
+                    <span>{{ date('d F Y', strtotime($pengadaan->created_at)) }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Waktu:</span>
+                    <span>{{ date('H:i:s', strtotime($pengadaan->created_at)) }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Dibuat oleh:</span>
+                    <span>{{ $pengadaan->username }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span><strong>{{ $pengadaan->status === 'A' ? 'APPROVED' : 'DRAFT' }}</strong></span>
+                </div>
             </div>
         </div>
 
@@ -229,12 +288,11 @@
             <thead>
                 <tr>
                     <th style="width: 4%;">NO</th>
-                    <th style="width: 33%;">NAMA BARANG</th>
+                    <th style="width: 36%;">NAMA BARANG</th>
                     <th style="width: 10%;">SATUAN</th>
-                    <th style="width: 8%;" class="text-right">QTY</th>
-                    <th style="width: 15%;" class="text-right">HARGA SATUAN</th>
-                    <th style="width: 13%;" class="text-right">MARGIN</th>
-                    <th style="width: 17%;" class="text-right">SUBTOTAL</th>
+                    <th style="width: 10%;" class="text-right">QTY</th>
+                    <th style="width: 18%;" class="text-right">HARGA SATUAN</th>
+                    <th style="width: 22%;" class="text-right">SUB TOTAL</th>
                 </tr>
             </thead>
             <tbody>
@@ -245,8 +303,7 @@
                     <td class="text-center">{{ $detail->nama_satuan }}</td>
                     <td class="text-right">{{ number_format($detail->jumlah, 0, ',', '.') }}</td>
                     <td class="text-right">Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}</td>
-                    <td class="text-right">Rp {{ number_format($detail->nilai_margin, 0, ',', '.') }}</td>
-                    <td class="text-right"><strong>Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</strong></td>
+                    <td class="text-right"><strong>Rp {{ number_format($detail->sub_total, 0, ',', '.') }}</strong></td>
                 </tr>
                 @endforeach
             </tbody>
@@ -258,27 +315,48 @@
                 <table>
                     <tr>
                         <td class="label">Subtotal:</td>
-                        <td class="value">Rp {{ number_format($penjualan->subtotal_nilai, 0, ',', '.') }}</td>
+                        <td class="value">Rp {{ number_format($pengadaan->subtotal_nilai, 0, ',', '.') }}</td>
                     </tr>
                     <tr>
-                        <td class="label">PPN (10%):</td>
-                        <td class="value">Rp {{ number_format($penjualan->ppn, 0, ',', '.') }}</td>
+                        <td class="label">PPN ({{ $pengadaan->ppn > 0 ? '10%' : '0%' }}):</td>
+                        <td class="value">Rp {{ number_format($pengadaan->ppn, 0, ',', '.') }}</td>
                     </tr>
                     <tr class="grand-total">
                         <td class="label" style="padding: 8px;">TOTAL:</td>
-                        <td class="value" style="padding: 8px;">Rp {{ number_format($penjualan->total_nilai, 0, ',', '.') }}</td>
+                        <td class="value" style="padding: 8px;">Rp {{ number_format($pengadaan->total_nilai, 0, ',', '.') }}</td>
                     </tr>
                 </table>
             </div>
         </div>
 
-        <!-- Notes -->
-        <div class="notes">
-            <h3>Catatan:</h3>
-            <p>
-                Terima kasih atas pembelian Anda. Barang yang sudah dibeli tidak dapat dikembalikan kecuali ada kesepakatan khusus.
-                Untuk pertanyaan lebih lanjut, silakan hubungi customer service kami.
-            </p>
+        <!-- Terms & Conditions -->
+        <div class="terms">
+            <h3>Syarat & Ketentuan:</h3>
+            <ul>
+                <li>Harap mengirimkan barang sesuai dengan spesifikasi yang tercantum</li>
+                <li>Pengiriman barang paling lambat 7 hari kerja setelah PO diterima</li>
+                <li>Pembayaran akan dilakukan setelah barang diterima dan diverifikasi</li>
+                <li>Barang yang tidak sesuai spesifikasi akan diretur</li>
+                <li>Harap menyertakan surat jalan dan faktur asli saat pengiriman</li>
+            </ul>
+        </div>
+
+        <!-- Signature Section -->
+        <div class="signature-section clearfix">
+            <div class="signature-box">
+                <h4>Dibuat Oleh:</h4>
+                <div class="signature-line">
+                    <strong>{{ $pengadaan->username }}</strong><br>
+                    <small>Purchasing Staff</small>
+                </div>
+            </div>
+            <div class="signature-box">
+                <h4>Disetujui Oleh:</h4>
+                <div class="signature-line">
+                    <strong>_________________</strong><br>
+                    <small>Manager</small>
+                </div>
+            </div>
         </div>
 
         <!-- Footer -->
