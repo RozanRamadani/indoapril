@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Exports\UserExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
 {
@@ -291,6 +293,14 @@ class UserController extends Controller
                 ->withInput()
                 ->with('error', 'Gagal memperbarui role: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Export User to Excel
+     */
+    public function export()
+    {
+        return Excel::download(new UserExport, 'Master-User-' . date('Y-m-d') . '.xlsx');
     }
 
     public function roleDestroy($id)

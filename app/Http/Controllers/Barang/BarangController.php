@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Barang;
 use Illuminate\Support\Facades\DB;
+use App\Exports\BarangExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BarangController extends Controller
 {
@@ -147,6 +149,14 @@ class BarangController extends Controller
 
         // Redirect dengan pesan sukses
         return redirect()->route('barang.index')->with('success', 'Barang diperbarui.');
+    }
+
+    /**
+     * Export Barang to Excel
+     */
+    public function export()
+    {
+        return Excel::download(new BarangExport, 'Master-Barang-' . date('Y-m-d') . '.xlsx');
     }
 
     // Fungsi soft delete barang

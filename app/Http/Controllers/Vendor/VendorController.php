@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Vendor;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Exports\VendorExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class VendorController extends Controller
 {
@@ -109,6 +111,14 @@ class VendorController extends Controller
 
         return redirect()->route('vendor.index')
             ->with('success', 'Data vendor berhasil diperbarui!');
+    }
+
+    /**
+     * Export Vendor to Excel
+     */
+    public function export()
+    {
+        return Excel::download(new VendorExport, 'Master-Vendor-' . date('Y-m-d') . '.xlsx');
     }
 
     /**

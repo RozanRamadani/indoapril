@@ -38,7 +38,11 @@ Route::middleware(['check.auth'])->group(function () {
     // ============================================
     Route::middleware(['role:superadmin,admin'])->group(function () {
         Route::resource('barang', BarangController::class);
+        Route::get('barang/export/excel', [BarangController::class, 'export'])->name('barang.export');
+
         Route::resource('vendor', VendorController::class);
+        Route::get('vendor/export/excel', [VendorController::class, 'export'])->name('vendor.export');
+
         Route::resource('satuan', SatuanController::class)->except(['show']);
         Route::resource('margin_penjualan', MarginPenjualanController::class)->except(['show']);
     });
@@ -48,6 +52,7 @@ Route::middleware(['check.auth'])->group(function () {
     // ============================================
     Route::middleware(['role:superadmin'])->group(function () {
         Route::resource('user', UserController::class);
+        Route::get('user/export/excel', [UserController::class, 'export'])->name('user.export');
         Route::patch('user/{user}/deactivate', [UserController::class, 'deactivate'])->name('user.deactivate');
         Route::patch('user/{user}/activate', [UserController::class, 'activate'])->name('user.activate');
 
