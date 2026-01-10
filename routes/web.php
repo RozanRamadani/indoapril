@@ -117,6 +117,7 @@ Route::middleware(['check.auth'])->group(function () {
             Route::get('/{idpenerimaan}/detail', [ReturController::class, 'detail'])->name('detail');
             Route::post('/store', [ReturController::class, 'store'])->name('store');
             Route::get('/show/{id}', [ReturController::class, 'show'])->name('show');
+            Route::get('/{id}/return-note', [ReturController::class, 'printRetur'])->name('printRetur');
         });
     });
 

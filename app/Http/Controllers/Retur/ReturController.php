@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReturController extends Controller
 {
@@ -192,5 +194,60 @@ class ReturController extends Controller
         ", [$id]);
 
         return view('retur.show', compact('retur', 'details'));
+    }
+
+    /**
+     * Print Surat Retur PDF
+     */
+    public function printRetur($id)
+    {
+        // Check if vendor table has alamat and telp columns
+        $hasAlamat = Schema::hasColumn('vendor', 'alamat');
+        $hasTelp = Schema::hasColumn('vendor', 'telp');
+
+        // Build vendor columns dynamically
+        $vendorColumns = "v.nama_vendor";
+        if ($hasAlamat) {
+            $vendorColumns .= ", v.alamat";
+        }
+        if ($hasTelp) {
+            $vendorColumns .= ", v.telp";
+        }
+
+        $retur = DB::selectOne("
+            SELECT r.*, pen.idpenerimaan, pg.idpengadaan, {$vendorColumns}, u.username
+            FROM retur r
+            LEFT JOIN penerimaan pen ON r.idpenerimaan = pen.idpenerimaan
+            LEFT JOIN pengadaan pg ON pen.idpengadaan = pg.idpengadaan
+            LEFT JOIN vendor v ON pg.vendor_idvendor = v.idvendor
+            LEFT JOIN user u ON r.iduser = u.iduser
+            WHERE r.idretur = ?
+        ", [$id]);
+
+        if (!$retur) {
+            return redirect()->route('retur.index')
+                ->with('error', 'Retur tidak ditemukan');
+        }
+
+        $details = DB::select("
+            SELECT
+                dr.*,
+                b.nama AS nama_barang,
+                b.jenis,
+                s.nama_satuan,
+                dp.jumlah_terima AS jumlah_penerimaan_asal,
+                dp.harga_satuan_terima
+            FROM detail_retur dr
+            INNER JOIN detail_penerimaan dp ON dr.iddetail_penerimaan = dp.iddetail_penerimaan
+            INNER JOIN barang b ON dp.idbarang = b.idbarang
+            LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+            WHERE dr.idretur = ?
+            ORDER BY b.nama
+        ", [$id]);
+
+        $pdf = Pdf::loadView('retur.return-note', compact('retur', 'details'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Surat-Retur-' . $retur->idretur . '.pdf');
     }
 }
