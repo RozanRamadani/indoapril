@@ -28,25 +28,11 @@
                             </div>
 
                             <!-- Periode Fields -->
-                            <div id="periode-fields" class="col-span-2" style="display: {{ request('type', 'tahunan') == 'periode' ? 'block' : 'none' }}">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">
-                                            Tanggal Mulai
-                                        </label>
-                                        <input type="date" name="start_date" id="start_date"
-                                               value="{{ request('start_date', date('Y-m-01')) }}"
-                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    </div>
-                                    <div>
-                                        <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">
-                                            Tanggal Akhir
-                                        </label>
-                                        <input type="date" name="end_date" id="end_date"
-                                               value="{{ request('end_date', date('Y-m-d')) }}"
-                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    </div>
-                                </div>
+                            <div id="periode-fields" class="col-span-4" style="display: {{ request('type', 'tahunan') == 'periode' ? 'block' : 'none' }}">
+                                <x-date-range-filter
+                                    :startDate="request('start_date', date('Y-m-01'))"
+                                    :endDate="request('end_date', date('Y-m-d'))"
+                                />
                             </div>
 
                             <!-- Tahun Field -->
@@ -74,8 +60,8 @@
                                 </select>
                             </div>
 
-                            <!-- Submit Button -->
-                            <div class="flex items-end">
+                            <!-- Submit Button (for non-periode types) -->
+                            <div id="submit-button" class="flex items-end" style="display: {{ request('type', 'tahunan') != 'periode' ? 'block' : 'none' }}">
                                 <button type="submit"
                                         class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
                                     Tampilkan
@@ -249,10 +235,12 @@
             const periodeFields = document.getElementById('periode-fields');
             const tahunField = document.getElementById('tahun-field');
             const bulanField = document.getElementById('bulan-field');
+            const submitButton = document.getElementById('submit-button');
 
             periodeFields.style.display = type === 'periode' ? 'block' : 'none';
             tahunField.style.display = ['mingguan', 'bulanan', 'tahunan'].includes(type) ? 'block' : 'none';
             bulanField.style.display = ['mingguan', 'bulanan'].includes(type) ? 'block' : 'none';
+            submitButton.style.display = type === 'periode' ? 'none' : 'block';
         }
     </script>
 </x-layout>

@@ -11,35 +11,10 @@
                 <div class="p-6">
                     <!-- Filter Form -->
                     <form method="GET" action="{{ route('laporan.pengadaan') }}" class="mb-6 bg-gray-50 p-4 rounded-lg">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <!-- Start Date -->
-                            <div>
-                                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Tanggal Mulai
-                                </label>
-                                <input type="date" name="start_date" id="start_date"
-                                       value="{{ $startDate }}"
-                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-
-                            <!-- End Date -->
-                            <div>
-                                <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Tanggal Akhir
-                                </label>
-                                <input type="date" name="end_date" id="end_date"
-                                       value="{{ $endDate }}"
-                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-
-                            <!-- Submit Button -->
-                            <div class="flex items-end">
-                                <button type="submit"
-                                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
-                                    Tampilkan
-                                </button>
-                            </div>
-                        </div>
+                        <x-date-range-filter
+                            :startDate="$startDate"
+                            :endDate="$endDate"
+                        />
                     </form>
 
                     @if($laporan && count($laporan) > 0)

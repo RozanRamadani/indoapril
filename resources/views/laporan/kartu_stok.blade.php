@@ -11,9 +11,9 @@
                 <div class="p-6">
                     <!-- Filter Form -->
                     <form method="GET" action="{{ url('/laporan/kartu-stok') }}" class="mb-6 bg-gray-50 p-4 rounded-lg">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <!-- Barang Dropdown -->
-                            <div>
+                            <div class="col-span-2">
                                 <label for="idbarang" class="block text-sm font-medium text-gray-700 mb-1">
                                     Pilih Barang
                                 </label>
@@ -30,35 +30,12 @@
                                     @endforeach
                                 </select>
                             </div>
-
-                            <!-- Start Date -->
-                            <div>
-                                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Tanggal Mulai
-                                </label>
-                                <input type="date" name="start_date" id="start_date"
-                                       value="{{ request('start_date', date('Y-m-01')) }}"
-                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-
-                            <!-- End Date -->
-                            <div>
-                                <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Tanggal Akhir
-                                </label>
-                                <input type="date" name="end_date" id="end_date"
-                                       value="{{ request('end_date', date('Y-m-d')) }}"
-                                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-
-                            <!-- Submit Button -->
-                            <div class="flex items-end">
-                                <button type="submit"
-                                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-200">
-                                    Tampilkan
-                                </button>
-                            </div>
                         </div>
+
+                        <x-date-range-filter
+                            :startDate="request('start_date', date('Y-m-01'))"
+                            :endDate="request('end_date', date('Y-m-d'))"
+                        />
                     </form>
 
                     @if(isset($kartuStok) && count($kartuStok) > 0)
