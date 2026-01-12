@@ -103,25 +103,30 @@ class DashboardController extends Controller
             LIMIT 5
         ');
 
-        // Transaksi 7 Hari Terakhir
-        $transaksi7Hari = DB::select("
-            SELECT DATE(created_at) as tanggal, COUNT(*) as total
-            FROM (
-                SELECT created_at FROM pengadaan WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                UNION ALL
-                SELECT created_at FROM penerimaan WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                UNION ALL
-                SELECT created_at FROM penjualan WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-            ) as semua_transaksi
+        // Transaksi 7 Hari Terakhir (dengan breakdown per tipe)
+        $penjualan7Hari = DB::select("
+            SELECT DATE(created_at) as tanggal, SUM(total_nilai) as nilai
+            FROM penjualan
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
             GROUP BY DATE(created_at)
             ORDER BY tanggal
         ");
 
-        // Top 5 Barang Paling Laku
+        $pengadaan7Hari = DB::select("
+            SELECT DATE(created_at) as tanggal, SUM(total_nilai) as nilai
+            FROM pengadaan
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            GROUP BY DATE(created_at)
+            ORDER BY tanggal
+        ");
+
+        // Top 5 Barang Paling Laku (dengan nilai)
         $topBarang = DB::select('
-            SELECT b.nama, SUM(dp.jumlah) as total_terjual
+            SELECT b.nama, SUM(dp.jumlah) as total_terjual, SUM(dp.subtotal) as total_nilai
             FROM detail_penjualan dp
             INNER JOIN barang b ON dp.idbarang = b.idbarang
+            INNER JOIN penjualan p ON dp.idpenjualan = p.idpenjualan
+            WHERE p.created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
             GROUP BY dp.idbarang, b.nama
             ORDER BY total_terjual DESC
             LIMIT 5
@@ -170,7 +175,8 @@ class DashboardController extends Controller
             'transaksiTerbaru' => $transaksiTerbaru,
             'barangTerbaru' => $barangTerbaru,
             'statistikJenis' => $statistikJenis,
-            'transaksi7Hari' => $transaksi7Hari,
+            'penjualan7Hari' => $penjualan7Hari,
+            'pengadaan7Hari' => $pengadaan7Hari,
             'topBarang' => $topBarang,
             'totalUser' => $transaksiStats->total_user,
             'stockAlerts' => $stockAlerts,

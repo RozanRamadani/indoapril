@@ -46,7 +46,13 @@
                         <span class="text-gray-600">Stock: <span class="font-semibold text-blue-600">{{ number_format($totalStock) }}</span></span>
                         @if($stockRendah > 0)
                         <span class="text-orange-600 font-semibold">⚠️ {{ $stockRendah }} rendah</span>
+                        @else
+                        <span class="text-green-600 font-semibold">✓ Stabil</span>
                         @endif
+                    </div>
+                    <div class="mt-2 pt-2 border-t text-xs">
+                        <span class="text-gray-600">Nilai Inventori:</span>
+                        <span class="font-semibold text-blue-600">Rp {{ number_format($nilaiInventori / 1000000, 1) }}M</span>
                     </div>
                 </div>
                 <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3">
@@ -142,6 +148,56 @@
                 </div>
             </div>
 
+        </div>
+
+        {{-- Analytics Charts Section (NEW) --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {{-- Penjualan Trend Chart --}}
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
+                    <h3 class="text-lg font-bold text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                        Trend Penjualan (7 Hari Terakhir)
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="salesTrendChart" height="250"></canvas>
+                </div>
+            </div>
+
+            {{-- Top Products Chart --}}
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500">
+                    <h3 class="text-lg font-bold text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Top 5 Produk Terlaris (30 Hari)
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="topProductsChart" height="250"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        {{-- Penjualan vs Pengadaan Comparison Chart --}}
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600">
+                <h3 class="text-lg font-bold text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    Perbandingan Nilai Penjualan vs Pengadaan (7 Hari Terakhir)
+                </h3>
+            </div>
+            <div class="p-6">
+                <canvas id="comparisonChart" height="100"></canvas>
+            </div>
         </div>
 
         {{-- Stock Alerts Section (NEW) --}}
@@ -528,5 +584,227 @@
         @endif
 
     </div>
+
+    {{-- Chart.js Scripts --}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // ========== SALES TREND CHART ==========
+            const salesTrendCtx = document.getElementById('salesTrendChart');
+            if (salesTrendCtx) {
+                // Prepare data for last 7 days
+                const last7Days = [];
+                const salesData = @json($penjualan7Hari);
+                const purchaseData = @json($pengadaan7Hari);
+
+                // Generate last 7 days labels
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    last7Days.push(date.toISOString().split('T')[0]);
+                }
+
+                // Map data to labels
+                const salesValues = last7Days.map(date => {
+                    const found = salesData.find(d => d.tanggal === date);
+                    return found ? parseFloat(found.nilai) : 0;
+                });
+
+                new Chart(salesTrendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: last7Days.map(date => {
+                            const d = new Date(date);
+                            return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+                        }),
+                        datasets: [{
+                            label: 'Nilai Penjualan (Rp)',
+                            data: salesValues,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 5,
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ========== TOP PRODUCTS CHART ==========
+            const topProductsCtx = document.getElementById('topProductsChart');
+            if (topProductsCtx) {
+                const topProducts = @json($topBarang);
+
+                new Chart(topProductsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: topProducts.map(p => {
+                            // Truncate long names
+                            return p.nama.length > 20 ? p.nama.substring(0, 20) + '...' : p.nama;
+                        }),
+                        datasets: [{
+                            label: 'Jumlah Terjual',
+                            data: topProducts.map(p => p.total_terjual),
+                            backgroundColor: [
+                                'rgba(234, 88, 12, 0.8)',   // Orange
+                                'rgba(249, 115, 22, 0.8)',  // Light Orange
+                                'rgba(251, 146, 60, 0.8)',  // Lighter Orange
+                                'rgba(253, 186, 116, 0.8)', // Very Light Orange
+                                'rgba(254, 215, 170, 0.8)'  // Pale Orange
+                            ],
+                            borderColor: [
+                                'rgb(234, 88, 12)',
+                                'rgb(249, 115, 22)',
+                                'rgb(251, 146, 60)',
+                                'rgb(253, 186, 116)',
+                                'rgb(254, 215, 170)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        const index = context[0].dataIndex;
+                                        return topProducts[index].nama;
+                                    },
+                                    afterLabel: function(context) {
+                                        const index = context.dataIndex;
+                                        const nilai = topProducts[index].total_nilai;
+                                        return 'Nilai: Rp ' + parseFloat(nilai).toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ========== COMPARISON CHART (Sales vs Purchase) ==========
+            const comparisonCtx = document.getElementById('comparisonChart');
+            if (comparisonCtx) {
+                const salesData = @json($penjualan7Hari);
+                const purchaseData = @json($pengadaan7Hari);
+
+                // Generate last 7 days labels
+                const last7Days = [];
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    last7Days.push(date.toISOString().split('T')[0]);
+                }
+
+                // Map data to labels
+                const salesValues = last7Days.map(date => {
+                    const found = salesData.find(d => d.tanggal === date);
+                    return found ? parseFloat(found.nilai) : 0;
+                });
+
+                const purchaseValues = last7Days.map(date => {
+                    const found = purchaseData.find(d => d.tanggal === date);
+                    return found ? parseFloat(found.nilai) : 0;
+                });
+
+                new Chart(comparisonCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: last7Days.map(date => {
+                            const d = new Date(date);
+                            return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+                        }),
+                        datasets: [
+                            {
+                                label: 'Penjualan',
+                                data: salesValues,
+                                backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                                borderColor: 'rgb(59, 130, 246)',
+                                borderWidth: 2
+                            },
+                            {
+                                label: 'Pengadaan',
+                                data: purchaseValues,
+                                backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                                borderColor: 'rgb(168, 85, 247)',
+                                borderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': Rp ' + context.parsed.y.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+        });
+    </script>
 
 </x-layout>
