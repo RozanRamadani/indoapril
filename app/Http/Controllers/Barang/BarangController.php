@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Barang;
 use Illuminate\Support\Facades\DB;
 use App\Exports\BarangExport;
+use App\Exports\BarangTemplateExport;
+use App\Imports\BarangImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class BarangController extends Controller
@@ -157,6 +159,54 @@ class BarangController extends Controller
     public function export()
     {
         return Excel::download(new BarangExport, 'Master-Barang-' . date('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * Download Import Template
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new BarangTemplateExport, 'Template-Import-Barang.xlsx');
+    }
+
+    /**
+     * Import Barang from Excel
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls|max:2048'
+        ]);
+
+        try {
+            $import = new BarangImport();
+            Excel::import($import, $request->file('file'));
+
+            $errors = [];
+
+            // Collect validation errors
+            foreach ($import->failures() as $failure) {
+                $errors[] = [
+                    'row' => $failure->row(),
+                    'attribute' => $failure->attribute(),
+                    'errors' => $failure->errors(),
+                    'values' => $failure->values()
+                ];
+            }
+
+            if (count($errors) > 0) {
+                return redirect()->back()
+                    ->with('import_errors', $errors)
+                    ->with('warning', 'Import selesai dengan ' . count($errors) . ' error. Lihat detail di bawah.');
+            }
+
+            return redirect()->route('barang.index')
+                ->with('success', 'Import berhasil! Data barang telah ditambahkan.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Import gagal: ' . $e->getMessage());
+        }
     }
 
     // Fungsi soft delete barang

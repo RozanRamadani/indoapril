@@ -39,9 +39,13 @@ Route::middleware(['check.auth'])->group(function () {
     Route::middleware(['role:superadmin,admin'])->group(function () {
         Route::resource('barang', BarangController::class);
         Route::get('barang/export/excel', [BarangController::class, 'export'])->name('barang.export');
+        Route::get('barang/template/download', [BarangController::class, 'downloadTemplate'])->name('barang.template');
+        Route::post('barang/import', [BarangController::class, 'import'])->name('barang.import');
 
         Route::resource('vendor', VendorController::class);
         Route::get('vendor/export/excel', [VendorController::class, 'export'])->name('vendor.export');
+        Route::get('vendor/template/download', [VendorController::class, 'downloadTemplate'])->name('vendor.template');
+        Route::post('vendor/import', [VendorController::class, 'import'])->name('vendor.import');
 
         Route::resource('satuan', SatuanController::class)->except(['show']);
         Route::resource('margin_penjualan', MarginPenjualanController::class)->except(['show']);

@@ -83,6 +83,12 @@
                         </svg>
                         Tambah Barang
                     </a>
+                    <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        Import Excel
+                    </button>
                     <a href="{{ route('barang.export') }}" class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -268,4 +274,67 @@
             @endif
         </div>
     </div>
+
+    {{-- Import Modal --}}
+    <div id="importModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center pb-3 border-b">
+                <h3 class="text-xl font-bold text-gray-900">Import Barang dari Excel</h3>
+                <button onclick="document.getElementById('importModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mt-4">
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm text-blue-700">
+                            <p class="font-semibold mb-2">Petunjuk Import:</p>
+                            <ol class="list-decimal list-inside space-y-1">
+                                <li>Download template Excel</li>
+                                <li>Isi data sesuai format</li>
+                                <li>Upload file Excel</li>
+                                <li>Sistem validasi otomatis</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <a href="{{ route('barang.template') }}" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Download Template
+                    </a>
+                </div>
+
+                <form action="{{ route('barang.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">File Excel</label>
+                        <input type="file" name="file" accept=".xlsx,.xls" required
+                            class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50">
+                        <p class="mt-1 text-xs text-gray-500">Max: 2MB</p>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Batal
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Import Sekarang
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </x-layout>

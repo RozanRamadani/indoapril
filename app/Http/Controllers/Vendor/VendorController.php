@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Exports\VendorExport;
+use App\Exports\VendorTemplateExport;
+use App\Imports\VendorImport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class VendorController extends Controller
@@ -119,6 +121,54 @@ class VendorController extends Controller
     public function export()
     {
         return Excel::download(new VendorExport, 'Master-Vendor-' . date('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * Download Import Template
+     */
+    public function downloadTemplate()
+    {
+        return Excel::download(new VendorTemplateExport, 'Template-Import-Vendor.xlsx');
+    }
+
+    /**
+     * Import Vendor from Excel
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls|max:2048'
+        ]);
+
+        try {
+            $import = new VendorImport();
+            Excel::import($import, $request->file('file'));
+
+            $errors = [];
+
+            // Collect validation errors
+            foreach ($import->failures() as $failure) {
+                $errors[] = [
+                    'row' => $failure->row(),
+                    'attribute' => $failure->attribute(),
+                    'errors' => $failure->errors(),
+                    'values' => $failure->values()
+                ];
+            }
+
+            if (count($errors) > 0) {
+                return redirect()->back()
+                    ->with('import_errors', $errors)
+                    ->with('warning', 'Import selesai dengan ' . count($errors) . ' error. Lihat detail di bawah.');
+            }
+
+            return redirect()->route('vendor.index')
+                ->with('success', 'Import berhasil! Data vendor telah ditambahkan.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Import gagal: ' . $e->getMessage());
+        }
     }
 
     /**
