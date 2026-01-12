@@ -199,6 +199,75 @@ class LaporanController extends Controller
     }
 
     /**
+     * Export Stock Opname ke PDF
+     */
+    public function exportStockOpnamePdf()
+    {
+        try {
+            $stockOpname = DB::select('CALL sp_report_stock_opname()');
+
+            $pdf = Pdf::loadView('laporan.pdf.stock-opname', compact('stockOpname'))
+                ->setPaper('a4', 'landscape');
+
+            return $pdf->stream('Laporan-Stock-Opname-' . date('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal export PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export Stock Rendah ke PDF
+     */
+    public function exportStockRendahPdf(Request $request)
+    {
+        $threshold = $request->input('threshold', 10);
+
+        try {
+            $stockRendah = DB::select('CALL sp_filter_barang_stock_rendah(?)', [$threshold]);
+
+            $pdf = Pdf::loadView('laporan.pdf.stock-rendah', compact('stockRendah', 'threshold'))
+                ->setPaper('a4', 'portrait');
+
+            return $pdf->stream('Laporan-Stock-Rendah-' . date('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal export PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export Kartu Stok ke PDF
+     */
+    public function exportKartuStokPdf(Request $request)
+    {
+        $idbarang = $request->input('idbarang');
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+        $viewAll = $request->input('view_all', false);
+
+        $barangList = DB::select('SELECT idbarang, nama FROM barang WHERE status = 1 ORDER BY nama');
+        $kartuStok = [];
+        $namaBarang = '';
+
+        try {
+            if ($viewAll || $idbarang === 'all') {
+                $kartuStok = collect(DB::select('CALL sp_kartu_stok_semua_barang(?, ?)', [$startDate, $endDate]));
+                $namaBarang = 'Semua Barang';
+            } elseif ($idbarang) {
+                $kartuStok = collect(DB::select('CALL sp_filter_kartu_stok(?, ?, ?)', [$idbarang, $startDate, $endDate]));
+                $barang = collect($barangList)->firstWhere('idbarang', $idbarang);
+                $namaBarang = $barang ? $barang->nama : '';
+            }
+
+            $pdf = Pdf::loadView('laporan.pdf.kartu-stok', compact('kartuStok', 'namaBarang', 'idbarang', 'startDate', 'endDate', 'viewAll'))
+                ->setPaper('a4', 'landscape');
+
+            return $pdf->stream('Kartu-Stok-' . date('Y-m-d') . '.pdf');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal export PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Export Laporan Penjualan ke Excel
      */
     public function exportPenjualan(Request $request)
@@ -210,6 +279,27 @@ class LaporanController extends Controller
             new PenjualanExport($startDate, $endDate),
             'laporan-penjualan-' . $startDate . '-' . $endDate . '.xlsx'
         );
+    }
+
+    /**
+     * Export Laporan Penjualan ke PDF
+     */
+    public function exportPenjualanPdf(Request $request)
+    {
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+
+        try {
+            $laporan = collect(DB::select('CALL sp_report_penjualan_periode(?, ?, ?, ?)',
+                [$startDate, $endDate, 500, 0]));
+
+            $pdf = Pdf::loadView('laporan.pdf.penjualan', compact('laporan', 'startDate', 'endDate'))
+                ->setPaper('a4', 'landscape');
+
+            return $pdf->stream('Laporan-Penjualan-' . $startDate . '-' . $endDate . '.pdf');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal export PDF: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -227,6 +317,27 @@ class LaporanController extends Controller
     }
 
     /**
+     * Export Laporan Pengadaan ke PDF
+     */
+    public function exportPengadaanPdf(Request $request)
+    {
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+
+        try {
+            $laporan = collect(DB::select('CALL sp_report_pengadaan_periode(?, ?, ?, ?)',
+                [$startDate, $endDate, 500, 0]));
+
+            $pdf = Pdf::loadView('laporan.pdf.pengadaan', compact('laporan', 'startDate', 'endDate'))
+                ->setPaper('a4', 'landscape');
+
+            return $pdf->stream('Laporan-Pengadaan-' . $startDate . '-' . $endDate . '.pdf');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal export PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Export Laporan Penerimaan ke Excel
      */
     public function exportPenerimaan(Request $request)
@@ -238,5 +349,32 @@ class LaporanController extends Controller
             new PenerimaanExport($startDate, $endDate),
             'laporan-penerimaan-' . $startDate . '-' . $endDate . '.xlsx'
         );
+    }
+
+    /**
+     * Export Laporan Penerimaan ke PDF
+     */
+    public function exportPenerimaanPdf(Request $request)
+    {
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+
+        try {
+            $laporan = collect(DB::select('CALL sp_report_penerimaan_periode(?, ?, ?, ?)',
+                [$startDate, $endDate, 500, 0]));
+
+            $laporan = $laporan->map(function ($row) {
+                $row->total_barang = $row->total_qty ?? $row->jumlah_item ?? 0;
+                $row->total_nilai = $row->total_nilai ?? 0;
+                return $row;
+            });
+
+            $pdf = Pdf::loadView('laporan.pdf.penerimaan', compact('laporan', 'startDate', 'endDate'))
+                ->setPaper('a4', 'landscape');
+
+            return $pdf->stream('Laporan-Penerimaan-' . $startDate . '-' . $endDate . '.pdf');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal export PDF: ' . $e->getMessage());
+        }
     }
 }

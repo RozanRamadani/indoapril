@@ -142,10 +142,18 @@ Route::middleware(['check.auth'])->group(function () {
         // Laporan Penerimaan
         Route::get('penerimaan', [LaporanController::class, 'penerimaan'])->name('laporan.penerimaan');
 
-        // Export Routes
+        // Export Excel Routes
         Route::get('stock-opname/export', [LaporanController::class, 'exportStockOpname'])->name('laporan.stock_opname.export');
         Route::get('penjualan/export', [LaporanController::class, 'exportPenjualan'])->name('laporan.penjualan.export');
         Route::get('pengadaan/export', [LaporanController::class, 'exportPengadaan'])->name('laporan.pengadaan.export');
         Route::get('penerimaan/export', [LaporanController::class, 'exportPenerimaan'])->name('laporan.penerimaan.export');
+
+        // Export PDF Routes
+        Route::get('stock-opname/pdf', [LaporanController::class, 'exportStockOpnamePdf'])->name('laporan.stock_opname.pdf');
+        Route::get('stock-rendah/pdf', [LaporanController::class, 'exportStockRendahPdf'])->name('laporan.stock_rendah.pdf');
+        Route::get('kartu-stok/pdf', [LaporanController::class, 'exportKartuStokPdf'])->name('laporan.kartu_stok.pdf');
+        Route::get('penjualan/pdf', [LaporanController::class, 'exportPenjualanPdf'])->name('laporan.penjualan.pdf');
+        Route::get('pengadaan/pdf', [LaporanController::class, 'exportPengadaanPdf'])->name('laporan.pengadaan.pdf');
+        Route::get('penerimaan/pdf', [LaporanController::class, 'exportPenerimaanPdf'])->name('laporan.penerimaan.pdf');
     });
 });

@@ -62,12 +62,22 @@
                     </form>
 
                     @if(isset($kartuStok) && count($kartuStok) > 0)
-                        <!-- Info Barang -->
-                        <div class="mb-4 bg-indigo-50 p-4 rounded-lg">
-                            <h3 class="font-semibold text-lg text-indigo-900">{{ $namaBarang }}</h3>
-                            <p class="text-sm text-indigo-700">
-                                Periode: {{ date('d/m/Y', strtotime(request('start_date'))) }} - {{ date('d/m/Y', strtotime(request('end_date'))) }}
-                            </p>
+                        <!-- Info Barang & Export -->
+                        <div class="mb-4 flex justify-between items-start">
+                            <div class="bg-indigo-50 p-4 rounded-lg flex-1">
+                                <h3 class="font-semibold text-lg text-indigo-900">{{ $namaBarang }}</h3>
+                                <p class="text-sm text-indigo-700">
+                                    Periode: {{ date('d/m/Y', strtotime(request('start_date'))) }} - {{ date('d/m/Y', strtotime(request('end_date'))) }}
+                                </p>
+                            </div>
+                            <a href="{{ route('laporan.kartu_stok.pdf', ['idbarang' => request('idbarang'), 'start_date' => request('start_date'), 'end_date' => request('end_date'), 'view_all' => request('view_all')]) }}"
+                               class="ml-4 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition duration-200"
+                               target="_blank">
+                                <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                Export PDF
+                            </a>
                         </div>
 
                         <!-- Tabel Kartu Stok -->
