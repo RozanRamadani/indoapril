@@ -10,6 +10,7 @@ use App\Exports\BarangExport;
 use App\Exports\BarangTemplateExport;
 use App\Imports\BarangImport;
 use Maatwebsite\Excel\Facades\Excel;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class BarangController extends Controller
 {
@@ -222,5 +223,56 @@ class BarangController extends Controller
         // Soft delete
         DB::update('UPDATE barang SET status = 0 WHERE idbarang = ?', [$id]);
         return redirect()->route('barang.index')->with('success', 'Barang dinonaktifkan.');
+    }
+
+    // Generate QR Code untuk barang
+    public function generateQrCode($id)
+    {
+        $barang = DB::selectOne('SELECT b.*, s.nama_satuan FROM barang b
+                                 LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+                                 WHERE b.idbarang = ?', [$id]);
+
+        if (!$barang) {
+            abort(404);
+        }
+
+        // Generate QR code berisi ID barang
+        $qrCode = QrCode::size(300)
+            ->format('svg')
+            ->generate($barang->idbarang);
+
+        return response($qrCode)->header('Content-Type', 'image/svg+xml');
+    }
+
+    // Print label untuk single barang
+    public function printLabel($id)
+    {
+        $barang = DB::selectOne('SELECT b.*, s.nama_satuan FROM barang b
+                                 LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+                                 WHERE b.idbarang = ?', [$id]);
+
+        if (!$barang) {
+            abort(404);
+        }
+
+        return view('barang.print-label', compact('barang'));
+    }
+
+    // Print bulk labels
+    public function printBulkLabels(Request $request)
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return redirect()->back()->with('error', 'Pilih minimal 1 barang untuk print label.');
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $barangs = DB::select("SELECT b.*, s.nama_satuan FROM barang b
+                               LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+                               WHERE b.idbarang IN ($placeholders)
+                               ORDER BY b.nama", $ids);
+
+        return view('barang.print-bulk-labels', compact('barangs'));
     }
 }

@@ -41,6 +41,9 @@ Route::middleware(['check.auth'])->group(function () {
         Route::get('barang/export/excel', [BarangController::class, 'export'])->name('barang.export');
         Route::get('barang/template/download', [BarangController::class, 'downloadTemplate'])->name('barang.template');
         Route::post('barang/import', [BarangController::class, 'import'])->name('barang.import');
+        Route::get('barang/{id}/qrcode', [BarangController::class, 'generateQrCode'])->name('barang.qrcode');
+        Route::get('barang/{id}/print-label', [BarangController::class, 'printLabel'])->name('barang.printLabel');
+        Route::post('barang/print-bulk-labels', [BarangController::class, 'printBulkLabels'])->name('barang.printBulkLabels');
 
         Route::resource('vendor', VendorController::class);
         Route::get('vendor/export/excel', [VendorController::class, 'export'])->name('vendor.export');
