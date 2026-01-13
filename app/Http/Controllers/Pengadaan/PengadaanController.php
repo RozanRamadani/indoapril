@@ -290,7 +290,8 @@ class PengadaanController extends Controller
         ", [$request->jumlah, $request->harga_satuan, $sub_total, $id, $request->idbarang]);
 
         // TRIGGER trg_after_insert_detail_pengadaan akan otomatis update totals!
-        // Tidak perlu panggil updatePengadaanTotals() lagi
+        // FALLBACK: Panggil manual untuk double-safety
+        $this->updatePengadaanTotals($id);
 
         return back()->with('success', 'Barang berhasil ditambahkan ke keranjang');
     }
@@ -330,7 +331,8 @@ class PengadaanController extends Controller
         ", [$request->jumlah, $request->harga_satuan, $sub_total, $detailId, $id]);
 
         // TRIGGER trg_after_update_detail_pengadaan akan otomatis update totals!
-        // Tidak perlu panggil updatePengadaanTotals() lagi
+        // FALLBACK: Panggil manual untuk double-safety
+        $this->updatePengadaanTotals($id);
 
         return back()->with('success', 'Item berhasil diupdate');
     }
@@ -357,6 +359,8 @@ class PengadaanController extends Controller
         ", [$detailId, $id]);
 
         // TRIGGER trg_after_delete_detail_pengadaan akan otomatis update totals
+        // FALLBACK: Panggil manual untuk double-safety
+        $this->updatePengadaanTotals($id);
 
         return back()->with('success', 'Item berhasil dihapus');
     }
@@ -525,7 +529,7 @@ class PengadaanController extends Controller
     {
         // Get pengadaan info
         $hasStatus = Schema::hasColumn('pengadaan', 'status_pengadaan');
-        
+
         if ($hasStatus) {
             $statusSelect = "(CASE WHEN p.status_pengadaan IS NOT NULL AND p.status_pengadaan <> '' THEN p.status_pengadaan WHEN p.status = 'C' THEN 'completed' WHEN p.status = 'A' THEN 'progress' WHEN p.status = 'P' THEN 'draft' ELSE p.status END) as status_pengadaan";
         } else {
