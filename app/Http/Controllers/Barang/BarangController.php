@@ -11,6 +11,7 @@ use App\Exports\BarangTemplateExport;
 use App\Imports\BarangImport;
 use Maatwebsite\Excel\Facades\Excel;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Support\Facades\Storage;
 
 class BarangController extends Controller
 {
@@ -77,19 +78,27 @@ class BarangController extends Controller
             'idsatuan' => 'required|integer|exists:satuan,idsatuan',
             'status' => 'required|in:0,1',
             'harga' => 'required|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle image upload
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('barang', 'public');
+        }
 
         // TRANSACTION untuk memastikan data integrity --- IGNORE ---
         // Jika ada error, semua operasi akan di-rollback --- IGNORE ---
         DB::beginTransaction();
         try {
             // Insert barang baru
-            DB::insert('INSERT INTO barang (jenis,nama,idsatuan,status,harga) VALUES (?,?,?,?,?)', [
+            DB::insert('INSERT INTO barang (jenis,nama,idsatuan,status,harga,image) VALUES (?,?,?,?,?,?)', [
                 $data['jenis'],
                 $data['nama'],
                 $data['idsatuan'],
                 $data['status'],
                 $data['harga'],
+                $imagePath,
             ]);
 
             // Commit transaction jika semua berhasil
@@ -100,6 +109,11 @@ class BarangController extends Controller
             // Rollback jika ada error
             DB::rollBack();
 
+            // Delete uploaded image if transaction fails
+            if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+                Storage::disk('public')->delete($imagePath);
+            }
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Gagal menambahkan barang: ' . $e->getMessage());
@@ -109,8 +123,11 @@ class BarangController extends Controller
         // Formulir edit barang
     public function edit($idbarang)
     {
-        // Ambil data barang dari view
-        $barang = DB::selectOne('SELECT * FROM master_barang_view WHERE idbarang = ?', [$idbarang]);
+        // Ambil data barang langsung dari tabel dengan join satuan
+        $barang = DB::selectOne('SELECT b.*, s.nama_satuan
+                                 FROM barang b
+                                 LEFT JOIN satuan s ON b.idsatuan = s.idsatuan
+                                 WHERE b.idbarang = ?', [$idbarang]);
 
         if (!$barang) {
             return redirect()->route('barang.index')->with('error', 'Barang tidak ditemukan!');
@@ -132,21 +149,34 @@ class BarangController extends Controller
             'idsatuan' => 'required|integer|exists:satuan,idsatuan',
             'status' => 'required|in:0,1',
             'harga' => 'required|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         // cek apakah barang ada
-        $exists = DB::select('SELECT idbarang FROM barang WHERE idbarang = ? LIMIT 1', [$id]);
-        if (! $exists || count($exists) === 0) {
+        $barang = DB::selectOne('SELECT * FROM barang WHERE idbarang = ? LIMIT 1', [$id]);
+        if (!$barang) {
             abort(404);
         }
 
+        // Handle image upload
+        $imagePath = $barang->image; // Keep existing image
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($barang->image && Storage::disk('public')->exists($barang->image)) {
+                Storage::disk('public')->delete($barang->image);
+            }
+            // Store new image
+            $imagePath = $request->file('image')->store('barang', 'public');
+        }
+
         // Update barang dengan parameter binding untuk keamanan
-        DB::update('UPDATE barang SET jenis = ?, nama = ?, idsatuan = ?, status = ?, harga = ? WHERE idbarang = ?', [
+        DB::update('UPDATE barang SET jenis = ?, nama = ?, idsatuan = ?, status = ?, harga = ?, image = ? WHERE idbarang = ?', [
             $data['jenis'],
             $data['nama'],
             $data['idsatuan'],
             $data['status'],
             $data['harga'],
+            $imagePath,
             $id,
         ]);
 

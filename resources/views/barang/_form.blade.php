@@ -5,8 +5,8 @@
             Jenis Barang <span class="text-red-500">*</span>
         </label>
         <div class="relative">
-            <select id="jenis" 
-                    name="jenis" 
+            <select id="jenis"
+                    name="jenis"
                     required
                     class="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition @error('jenis') border-red-500 @enderror">
                 <option value="">-- Pilih Jenis --</option>
@@ -34,10 +34,10 @@
             Nama Barang <span class="text-red-500">*</span>
         </label>
         <div class="relative">
-            <input type="text" 
-                   id="nama" 
-                   name="nama" 
-                   value="{{ old('nama', $barang->nama ?? '') }}" 
+            <input type="text"
+                   id="nama"
+                   name="nama"
+                   value="{{ old('nama', $barang->nama ?? '') }}"
                    required
                    class="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition @error('nama') border-red-500 @enderror"
                    placeholder="Masukkan nama barang">
@@ -58,8 +58,8 @@
             Satuan <span class="text-red-500">*</span>
         </label>
         <div class="relative">
-            <select id="idsatuan" 
-                    name="idsatuan" 
+            <select id="idsatuan"
+                    name="idsatuan"
                     required
                     class="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition @error('idsatuan') border-red-500 @enderror">
                 <option value="">-- Pilih Satuan --</option>
@@ -87,8 +87,8 @@
             Status <span class="text-red-500">*</span>
         </label>
         <div class="relative">
-            <select id="status" 
-                    name="status" 
+            <select id="status"
+                    name="status"
                     class="block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition @error('status') border-red-500 @enderror">
                 <option value="1" {{ (old('status', $barang->status ?? 1) == 1) ? 'selected' : '' }}>
                     ✓ Aktif (Dapat dijual)
@@ -117,10 +117,10 @@
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <span class="text-gray-500 sm:text-sm">Rp</span>
             </div>
-            <input type="number" 
-                   id="harga" 
-                   name="harga" 
-                   value="{{ old('harga', $barang->harga ?? '') }}" 
+            <input type="number"
+                   id="harga"
+                   name="harga"
+                   value="{{ old('harga', $barang->harga ?? '') }}"
                    required
                    min="0"
                    step="1"
@@ -134,6 +134,50 @@
         </div>
         <p class="mt-2 text-sm text-gray-500">Harga dalam Rupiah (tanpa desimal)</p>
         @error('harga')
+            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <!-- Image Upload -->
+    <div>
+        <label for="image" class="block text-sm font-medium text-gray-700 mb-2">
+            Foto Produk
+        </label>
+        <div class="mt-1 flex flex-col items-center">
+            <!-- Preview Container -->
+            <div class="mb-4 w-full">
+                <div id="imagePreview" class="mx-auto w-48 h-48 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                    @if(isset($barang) && $barang->image)
+                        <img src="{{ asset('storage/' . $barang->image) }}" alt="Product Image" class="w-full h-full object-cover" id="previewImg">
+                    @else
+                        <div class="text-center" id="placeholderContent">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="mt-1 text-sm text-gray-500">Tidak ada gambar</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Upload Button -->
+            <div class="w-full">
+                <label for="image" class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500 transition">
+                    <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    <span>Pilih Gambar</span>
+                    <input type="file"
+                           id="image"
+                           name="image"
+                           accept="image/jpeg,image/png,image/jpg,image/gif"
+                           class="sr-only"
+                           onchange="previewImage(event)">
+                </label>
+                <p class="mt-2 text-xs text-gray-500">PNG, JPG, GIF hingga 2MB</p>
+            </div>
+        </div>
+        @error('image')
             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>
@@ -154,3 +198,18 @@
         </div>
     </div>
 </div>
+
+<script>
+    function previewImage(event) {
+        const file = event.target.files[0];
+        const preview = document.getElementById('imagePreview');
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = '<img src="' + e.target.result + '" alt="Preview" class="w-full h-full object-cover" id="previewImg">';
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+</script>

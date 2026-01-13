@@ -1,10 +1,10 @@
 <x-layout>
     <x-slot:title>Edit Barang - IndoApril</x-slot:title>
-    
+
     <x-slot:header>
         <x-header title="Edit Barang" subtitle="Perbarui informasi barang {{ $barang->nama }}" />
     </x-slot:header>
-    
+
     <div class="px-4 sm:px-6 lg:px-8">
         <div class="max-w-3xl mx-auto">
             <!-- Breadcrumb -->
@@ -28,7 +28,7 @@
                     </li>
                 </ol>
             </nav>
-            
+
             <!-- Info Card -->
             <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
                 <div class="flex">
@@ -44,19 +44,19 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Form Card -->
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
                     <h3 class="text-lg font-medium leading-6 text-gray-900">Informasi Barang</h3>
                     <p class="mt-1 text-sm text-gray-500">Perbarui data barang sesuai kebutuhan</p>
                 </div>
-                
-                <form action="{{ route('barang.update', $barang->idbarang) }}" method="POST" class="px-6 py-6">
+
+                <form action="{{ route('barang.update', $barang->idbarang) }}" method="POST" enctype="multipart/form-data" class="px-6 py-6">
                     @csrf
                     @method('PUT')
                     @include('barang._form')
-                    
+
                     <div class="pt-6 border-t border-gray-200 flex items-center justify-end space-x-3">
                         <a href="{{ route('barang.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

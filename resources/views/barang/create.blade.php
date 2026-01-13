@@ -1,10 +1,10 @@
 <x-layout>
     <x-slot:title>Tambah Barang - IndoApril</x-slot:title>
-    
+
     <x-slot:header>
         <x-header title="Tambah Barang Baru" subtitle="Masukkan informasi barang yang akan ditambahkan ke inventori" />
     </x-slot:header>
-    
+
     <div class="px-4 sm:px-6 lg:px-8">
         <div class="max-w-3xl mx-auto">
             <!-- Breadcrumb -->
@@ -28,18 +28,18 @@
                     </li>
                 </ol>
             </nav>
-            
+
             <!-- Form Card -->
             <div class="bg-white shadow-lg rounded-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
                     <h3 class="text-lg font-medium leading-6 text-gray-900">Informasi Barang</h3>
                     <p class="mt-1 text-sm text-gray-500">Lengkapi formulir di bawah ini dengan data yang valid</p>
                 </div>
-                
-                <form action="{{ route('barang.store') }}" method="POST" class="px-6 py-6">
+
+                <form action="{{ route('barang.store') }}" method="POST" enctype="multipart/form-data" class="px-6 py-6">
                     @csrf
                     @include('barang._form')
-                    
+
                     <div class="pt-6 border-t border-gray-200 flex items-center justify-end space-x-3">
                         <a href="{{ route('barang.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

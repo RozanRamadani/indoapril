@@ -60,6 +60,25 @@
             gap: 12px;
         }
 
+        .product-image {
+            flex: 0 0 auto;
+            width: 60px;
+            height: 60px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         .qr-section {
             flex: 0 0 auto;
             display: flex;
@@ -196,6 +215,12 @@
         </div>
 
         <div class="content">
+            @if($barang->image)
+            <div class="product-image">
+                <img src="{{ asset('storage/' . $barang->image) }}" alt="{{ $barang->nama }}">
+            </div>
+            @endif
+
             <div class="qr-section">
                 <img src="{{ route('barang.qrcode', $barang->idbarang) }}" alt="QR Code" class="qr-code">
             </div>
